@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PataKeja – Pata keja, bila stress</title>
+<meta name="description" content="Verified vacant houses, bedsitters and shops in Githurai 44, Kasarani, Mwiki, Roysambu, Mirema and Zimmerman.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#f7faf7;--card:#fff;--tx:#17301f;--mut:#5d7164;--g:#1f9d55;--o:#d9730d;--bd:#dce6de}
+@media (prefers-color-scheme:dark){:root{--bg:#101a14;--card:#18261d;--tx:#e8f3ea;--mut:#9ab0a1;--bd:#2a3d31}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.4}
+header{background:var(--g);color:#fff;padding:14px 16px}
+.w{max-width:980px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.logo{font-size:24px;font-weight:800}.logo span{color:#ffd9a8}.tag{font-size:13px;opacity:.9}
+button,select,input,textarea{font:inherit}
+.btn{background:var(--o);color:#fff;border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+.btn.alt{background:var(--card);color:var(--tx);border:1px solid var(--bd)}.btn.g{background:var(--g)}
+.btn:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #ffb86b;outline-offset:2px}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:14px 0}
+select,input,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin:6px 0 10px;gap:8px}
+.seg{display:flex}.seg button{border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 14px;cursor:pointer}
+.seg button:first-child{border-radius:10px 0 0 10px}.seg button:last-child{border-radius:0 10px 10px 0}.seg .on{background:var(--g);color:#fff;border-color:var(--g)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;overflow:hidden;cursor:pointer;text-align:left;padding:0;color:inherit}
+.ph{height:140px;display:flex;align-items:center;justify-content:center;font-size:44px;background:#d6efe0 center/cover}
+.cb{padding:10px 12px}.price{font-weight:800;color:var(--g);font-size:18px}
+.mut{color:var(--mut);font-size:13px}
+.chip{display:inline-block;border:1px solid var(--bd);border-radius:20px;padding:2px 9px;font-size:12px;margin:2px 3px 0 0}
+.vf{color:var(--g);font-weight:700;font-size:12px}
+#map{display:none;height:460px;border:1px solid var(--bd);border-radius:14px;z-index:0}
+.note{font-size:12px;color:var(--mut);margin:8px 0}
+.banner{background:#fff3cd;color:#5a4300;padding:10px 14px;border-radius:10px;margin:12px 0;display:none}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-start;justify-content:center;overflow:auto;padding:16px;z-index:1000}
+.mb{background:var(--card);border-radius:16px;max-width:540px;width:100%;padding:16px;margin:auto}
+.imgs{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px}.imgs div{flex:0 0 85%;height:190px;border-radius:10px;background:center/cover}
+.f label{display:block;font-size:13px;margin:10px 0 3px;font-weight:600}
+.cks label{display:inline-block;font-weight:400;margin-right:10px}.cks input{width:auto}
+.empty{padding:30px;text-align:center;color:var(--mut);grid-column:1/-1}
+footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+<header><div class="w top">
+  <div><div class="logo">🏠 Pata<span>Keja</span></div><div class="tag">Pata keja, bila stress</div></div>
+  <button class="btn" id="postBtn">+ List a vacant house (free)</button>
+</div></header>
+
+<main class="w" style="padding:0 14px">
+<div class="banner" id="setup">Setup not finished: open <b>config.js</b> and paste your Supabase URL and key (see README, step 5).</div>
+<div class="filters">
+  <select id="fe" aria-label="Estate"><option value="">All estates</option></select>
+  <select id="fc" aria-label="House type"><option value="">All types</option></select>
+  <input id="fr" type="number" inputmode="numeric" placeholder="Max rent (KSh)" aria-label="Max rent">
+  <select id="fa" aria-label="Amenity"><option value="">Any amenity</option></select>
+  <select id="fs" aria-label="Sort"><option value="new">Newest</option><option value="low">Lowest rent</option><option value="high">Highest rent</option></select>
+</div>
+<div class="bar"><div id="count" class="mut">Loading…</div>
+  <div class="seg"><button id="vl" class="on">List</button><button id="vm">Map</button></div></div>
+<div id="list" class="grid"></div>
+<div id="map"></div>
+<p class="note" id="mapnote" style="display:none">Pins show the approximate area. The exact location appears with the contact details.</p>
+<p class="note">Always view a house before paying any deposit. Listings are checked before they go live and expire after 30 days.</p>
+</main>
+<footer>© PataKeja · Githurai 44 · Kasarani · Mwiki · Roysambu · Mirema · Zimmerman</footer>
+
+<div class="modal" id="dm"><div class="mb" id="db"></div></div>
+
+<div class="modal" id="pm"><div class="mb f">
+  <h3 style="margin:0">List your vacant house</h3>
+  <p class="mut">Free. We check every listing before it goes live.</p>
+  <div id="pform">
+  <label>Estate</label><select id="p_e"></select>
+  <label>Plot / building name</label><input id="p_n" maxlength="80">
+  <label>Landmark (e.g. behind Zimmerman mall)</label><input id="p_l" maxlength="120">
+  <label>House type</label><select id="p_c"></select>
+  <label>Monthly rent (KSh)</label><input id="p_r" type="number" inputmode="numeric">
+  <label>Deposit (KSh)</label><input id="p_d" type="number" inputmode="numeric">
+  <label>Short description (optional)</label><textarea id="p_ds" rows="2" maxlength="300"></textarea>
+  <label>Features</label><div class="cks" id="p_a"></div>
+  <label>Your name</label><input id="p_cn" maxlength="60">
+  <label>You are the</label><select id="p_ro"><option>Landlord</option><option>Caretaker</option><option>Agent</option></select>
+  <label>Phone / WhatsApp number</label><input id="p_p" type="tel" inputmode="tel" placeholder="07XXXXXXXX">
+  <label>Location (stand at the gate)</label>
+  <button type="button" class="btn alt" id="p_gps">📍 Use my current location</button> <span class="mut" id="p_gpsm"></span>
+  <label>Photos: at least 3 (outside, room, bathroom or kitchen), up to 8</label>
+  <input id="p_ph" type="file" accept="image/*" multiple>
+  <label class="cks"><input type="checkbox" id="p_ok"> This house is vacant and I agree to list it. It expires after 30 days.</label>
+  <div id="p_err" style="color:#c0392b;margin-top:8px"></div>
+  <div style="display:flex;gap:8px;margin-top:14px"><button class="btn g" id="p_s">Submit for approval</button><button class="btn alt" id="p_x">Cancel</button></div>
+  </div>
+  <div id="pdone" style="display:none"></div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+var L_=window.L,CFG=window.PK_CONFIG,ESTATES=["Githurai 44","Kasarani","Mwiki","Roysambu","Mirema","Zimmerman"];
+var CATS=["Bedsitter","Single room","1 Bedroom","2 Bedroom","3 Bedroom","Shop","Office"];
+var AM=["Water 24hrs","Security guard","Parking","Prepaid meter","Balcony","Tiled floor","Hot shower","Pets allowed","Borehole water","CCTV"];
+var EMO={"Bedsitter":"🛏️","Single room":"🚪","1 Bedroom":"🏠","2 Bedroom":"🏡","3 Bedroom":"🏘️","Shop":"🏪","Office":"🏢"};
+var ready=CFG&&CFG.SUPABASE_URL&&CFG.SUPABASE_URL.indexOf("PASTE")<0;
+var sb=ready?supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY):null;
+if(!ready)document.getElementById("setup").style.display="block";
+var $=function(i){return document.getElementById(i)};
+var LIST=[],gps=null,map=null,layer=null;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function money(n){return "KSh "+Number(n).toLocaleString("en-KE")}
+function fill(el,arr){arr.forEach(function(x){var o=document.createElement("option");o.textContent=x;el.appendChild(o)})}
+fill($("fe"),ESTATES);fill($("fc"),CATS);fill($("fa"),AM);fill($("p_e"),ESTATES);fill($("p_c"),CATS);
+$("p_a").innerHTML=AM.map(function(a){return '<label><input type="checkbox" value="'+a+'"> '+a+'</label>'}).join("");
+
+async function load(){
+  if(!ready){$("count").textContent="";render();return}
+  var r=await sb.from("listings").select("id,estate,plot_name,landmark,category,rent,deposit,description,amenities,photos,verified,created_at,expires_at,pub_lat,pub_lng").eq("status","live").order("created_at",{ascending:false}).limit(500);
+  if(r.error){$("count").textContent="Could not load houses. Check your internet and try again.";return}
+  LIST=r.data;render()
+}
+function filt(){
+  var e=$("fe").value,c=$("fc").value,rt=+$("fr").value,a=$("fa").value,s=$("fs").value;
+  var f=LIST.filter(function(x){return(!e||x.estate==e)&&(!c||x.category==c)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
+  if(s=="low")f.sort(function(a,b){return a.rent-b.rent});if(s=="high")f.sort(function(a,b){return b.rent-a.rent});
+  return f
+}
+function render(){
+  var f=filt();$("count").textContent=ready?f.length+" vacant house"+(f.length==1?"":"s"):"";
+  $("list").innerHTML=f.length?f.map(function(x){
+    var img=x.photos&&x.photos[0];
+    return '<button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut"> /month</span></div><div><b>'+esc(x.category)+'</b> in '+esc(x.estate)+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div><div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button>'
+  }).join(""):'<div class="empty">No houses match yet. Try another estate or a higher rent.</div>';
+  if(map)drawMap(f)
+}
+function setView(v){
+  $("list").style.display=v=="list"?"grid":"none";$("map").style.display=v=="map"?"block":"none";$("mapnote").style.display=v=="map"?"block":"none";
+  $("vl").className=v=="list"?"on":"";$("vm").className=v=="map"?"on":"";
+  if(v=="map"){if(!map){map=L_.map("map").setView([-1.2199,36.89],12);L_.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap"}).addTo(map);layer=L_.layerGroup().addTo(map)}setTimeout(function(){map.invalidateSize();drawMap(filt())},50)}
+}
+function drawMap(f){
+  layer.clearLayers();
+  f.forEach(function(x){if(x.pub_lat==null)return;
+    var m=L_.circleMarker([x.pub_lat,x.pub_lng],{radius:10,color:"#fff",weight:2,fillColor:"#d9730d",fillOpacity:.95}).addTo(layer);
+    m.bindPopup('<b>'+esc(money(x.rent))+'</b><br>'+esc(x.category)+' · '+esc(x.estate)+'<br><a href="#" data-open="'+x.id+'">View details</a>')
+  })
+}
+document.addEventListener("click",function(e){var a=e.target.closest("[data-open]");if(a){e.preventDefault();openD(a.getAttribute("data-open"))}});
+$("vl").onclick=function(){setView("list")};$("vm").onclick=function(){setView("map")};
+["fe","fc","fr","fa","fs"].forEach(function(i){$(i).oninput=render});
+$("list").onclick=function(e){var c=e.target.closest(".card");if(c)openD(c.dataset.id)};
+
+function openD(id){
+  var x=LIST.filter(function(y){return y.id==id})[0];if(!x)return;
+  if(ready)sb.rpc("bump_views",{p_id:id});
+  var days=Math.max(0,Math.ceil((new Date(x.expires_at)-Date.now())/864e5));
+  var imgs=x.photos&&x.photos.length?'<div class="imgs">'+x.photos.map(function(u){return '<div style="background-image:url(\''+esc(u)+'\')"></div>'}).join("")+'</div>':'<div class="ph" style="border-radius:10px;margin-bottom:10px">'+(EMO[x.category]||"🏠")+'</div>';
+  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+' /month</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</h3><div class="mut">'+esc(x.estate)+(x.landmark?' · '+esc(x.landmark):'')+'</div><p>Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">Never pay a deposit before viewing the house.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
+  $("un").onclick=async function(){
+    var r=await sb.rpc("get_contact",{p_id:id});
+    if(r.error||!r.data||!r.data.length){$("ct").textContent="This listing is no longer available.";return}
+    var c=r.data[0],ph=String(c.contact_phone).replace(/\D/g,""),wa=ph.replace(/^0/,"254");
+    $("ct").innerHTML='<div><b>'+esc(c.contact_name||"Owner")+'</b> ('+esc(c.contact_role||"")+')<br><a href="tel:'+esc(ph)+'">📞 '+esc(c.contact_phone)+'</a> · <a href="https://wa.me/'+esc(wa)+'?text='+encodeURIComponent("Hi, I saw your "+x.category+" in "+x.estate+" on PataKeja. Is it still available?")+'" target="_blank" rel="noopener">WhatsApp</a>'+(c.lat!=null?'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+c.lat+','+c.lng+'" target="_blank" rel="noopener">🧭 Directions</a>':'')+'</div>'
+  };
+  $("sh").onclick=function(){window.open("https://wa.me/?text="+encodeURIComponent(x.category+" in "+x.estate+" for "+money(x.rent)+" on PataKeja: "+location.href.split("#")[0]),"_blank")};
+  $("rp").onclick=async function(){
+    var why=prompt("What is wrong? Type: fake, already taken, wrong price, wrong location, or other");if(!why)return;
+    var r=await sb.from("reports").insert({listing_id:id,reason:why.slice(0,200)});alert(r.error?"Could not send the report. Try again.":"Thank you. We will check this listing.")};
+  $("tk").onclick=async function(){
+    var code=prompt("Enter your owner code (shown when you posted):");if(!code)return;
+    var r=await sb.rpc("mark_taken",{p_id:id,p_code:code.trim()});
+    if(r.data===true){alert("Marked as taken. Thank you!");closeD();load()}else alert("Code not correct.")};
+  $("cl").onclick=closeD;$("dm").style.display="flex"
+}
+function closeD(){$("dm").style.display="none"}
+$("dm").onclick=function(e){if(e.target==$("dm"))closeD()};
+
+$("postBtn").onclick=function(){$("pform").style.display="block";$("pdone").style.display="none";$("pm").style.display="flex"};
+$("p_x").onclick=function(){$("pm").style.display="none"};
+$("p_gps").onclick=function(){
+  if(!navigator.geolocation){$("p_gpsm").textContent="Location not available on this phone.";return}
+  $("p_gpsm").textContent="Finding you…";
+  navigator.geolocation.getCurrentPosition(function(p){gps={lat:p.coords.latitude,lng:p.coords.longitude};$("p_gpsm").textContent="Location saved ✔"},function(){$("p_gpsm").textContent="Could not get location. Allow location access and try again."},{enableHighAccuracy:true,timeout:15000})
+};
+function shrink(file){return new Promise(function(res,rej){var r=new FileReader();r.onerror=rej;r.onload=function(){var im=new Image();im.onerror=rej;im.onload=function(){var s=Math.min(1,1000/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*s;c.height=im.height*s;c.getContext("2d").drawImage(im,0,0,c.width,c.height);c.toBlob(function(b){b?res(b):rej()},"image/jpeg",.72)};im.src=r.result};r.readAsDataURL(file)})}
+function rid(n){var a=new Uint8Array(n),s="";crypto.getRandomValues(a);for(var i=0;i<n;i++)s+="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[a[i]%32];return s}
+$("p_s").onclick=async function(){
+  var err=$("p_err");err.textContent="";
+  var n=$("p_n").value.trim(),r=+$("p_r").value,p=$("p_p").value.trim().replace(/[\s-]/g,""),files=Array.prototype.slice.call($("p_ph").files,0,8);
+  if(!ready){err.textContent="Site setup is not finished yet.";return}
+  if(!n||!r){err.textContent="Please enter the plot name and the rent.";return}
+  if(!/^(\+?254|0)[17]\d{8}$/.test(p)){err.textContent="Enter a valid Kenyan phone number, e.g. 0712345678.";return}
+  if(files.length<3){err.textContent="Please add at least 3 photos.";return}
+  if(!$("p_ok").checked){err.textContent="Please confirm the house is vacant.";return}
+  var btn=$("p_s");btn.disabled=true;btn.textContent="Uploading…";
+  try{
+    var id=crypto.randomUUID(),code=rid(6),urls=[];
+    for(var i=0;i<files.length;i++){
+      var b=await shrink(files[i]),path=id+"/"+i+".jpg";
+      var u=await sb.storage.from("photos").upload(path,b,{contentType:"image/jpeg"});
+      if(u.error)throw u.error;
+      urls.push(sb.storage.from("photos").getPublicUrl(path).data.publicUrl)
+    }
+    var a=Array.prototype.slice.call($("p_a").querySelectorAll("input:checked")).map(function(i){return i.value});
+    var ins=await sb.from("listings").insert({id:id,estate:$("p_e").value,plot_name:n,landmark:$("p_l").value.trim()||null,category:$("p_c").value,rent:r,deposit:+$("p_d").value||null,description:$("p_ds").value.trim()||null,amenities:a,contact_name:$("p_cn").value.trim()||null,contact_role:$("p_ro").value,contact_phone:p,lat:gps?gps.lat:null,lng:gps?gps.lng:null,photos:urls,manage_code:code});
+    if(ins.error)throw ins.error;
+    $("pform").style.display="none";$("pdone").style.display="block";
+    $("pdone").innerHTML='<h3>✔ Received</h3><p>We will check your listing and publish it soon.</p><p><b>Your owner code: <span style="font-size:22px;letter-spacing:2px">'+code+'</span></b><br>Take a screenshot or write it down. You need it to mark the house as taken.</p><button class="btn g" id="p_c2">Done</button>';
+    $("p_c2").onclick=function(){$("pm").style.display="none"};
+    ["p_n","p_l","p_r","p_d","p_ds","p_cn","p_p","p_ph"].forEach(function(i){$(i).value=""});gps=null;$("p_gpsm").textContent=""
+  }catch(e){err.textContent="Something went wrong. Check your internet and try again."}
+  btn.disabled=false;btn.textContent="Submit for approval"
+};
+load();
+</script>
+</body>
+</html>
