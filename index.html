@@ -53,6 +53,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <main class="w" style="padding:0 14px">
 <div class="banner" id="setup">Setup not finished: open <b>config.js</b> and paste your Supabase URL and key (see README, step 5).</div>
 <div class="filters">
+  <select id="fk" aria-label="Listing type"><option value="">Rent and short stay</option><option value="rent">Long-term rent</option><option value="stay">Short stay (per night)</option></select>
   <select id="ft" aria-label="Town"><option value="">All towns</option></select>
   <select id="fe" aria-label="Estate"><option value="">All estates</option></select>
   <select id="fc" aria-label="House type"><option value="">All types</option></select>
@@ -82,8 +83,9 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
   <label>Plot / building name</label><input id="p_n" maxlength="80">
   <label>Landmark (e.g. behind Zimmerman mall)</label><input id="p_l" maxlength="120">
   <label>House type</label><select id="p_c"></select>
-  <label>Monthly rent (KSh)</label><input id="p_r" type="number" inputmode="numeric">
+  <label id="p_rl">Monthly rent (KSh)</label><input id="p_r" type="number" inputmode="numeric">
   <label>Deposit (KSh)</label><input id="p_d" type="number" inputmode="numeric">
+  <div id="p_stay" style="display:none"><div class="warn" style="margin:8px 0">Short stay: list only a place you own or manage. Guests should be able to see the exact address and host details before paying anything.</div><label>Maximum guests</label><input id="p_g" type="number" inputmode="numeric"><label>Minimum nights</label><input id="p_mn" type="number" inputmode="numeric" placeholder="1"></div>
   <label>Short description (optional)</label><textarea id="p_ds" rows="2" maxlength="300"></textarea>
   <label>Features</label><div class="cks" id="p_a"></div>
   <label>Your name</label><input id="p_cn" maxlength="60">
@@ -114,15 +116,18 @@ var L_=window.L,CFG=window.PK_CONFIG,TOWNS={
 "Nyeri":["Kamakwa","Ruringu","Skuta","Ngangarithi","Majengo","Gatitu","Rware","Mukaro","Nyeri CBD"],
 "Ruiru":["Ruiru Town","Kihunguro","Membley","Kamakis","Gitothua","Mugutha","Ruiru Bypass","Kimbo","Biashara","Kiu"],
 "Juja":["Juja Town","Juja South","Kalimoni","Witeithie","Gachororo","Highpoint","Juja Farm","Theta","JKUAT Gate"],
+"Thika":["Thika Town CBD","Makongeni","Landless","Ngoingwa","Kiandutu","Section 9","Gatuanyaga","Kiganjo","Mang'u","Thika Greens","Blue Post"],
 "Machakos":["Machakos Town","Mlolongo","Syokimau","Athi River","Katani","Kinanie","Kyumvi"]
 },OTHER="Other (type your estate)";
 function loc(x){return x.estate+", "+(x.town||"Nairobi")}
 function fillEstates(sel,town,allLabel){sel.innerHTML="";if(allLabel){var o=document.createElement("option");o.value="";o.textContent=allLabel;sel.appendChild(o)}
  (TOWNS[town]||[]).slice().sort().forEach(function(n){var o=document.createElement("option");o.textContent=n;sel.appendChild(o)});
  if(!allLabel){var q=document.createElement("option");q.textContent=OTHER;sel.appendChild(q)}}
-var CATS=["Bedsitter","Single room","1 Bedroom","2 Bedroom","3 Bedroom","Shop","Office"];
-var AM=["Water 24hrs","Security guard","Parking","Prepaid meter","Balcony","Tiled floor","Hot shower","Pets allowed","Borehole water","CCTV"];
-var EMO={"Bedsitter":"🛏️","Single room":"🚪","1 Bedroom":"🏠","2 Bedroom":"🏡","3 Bedroom":"🏘️","Shop":"🏪","Office":"🏢"};
+var CATS=["Bedsitter","Single room","1 Bedroom","2 Bedroom","3 Bedroom","Shop","Office","Short stay: Room","Short stay: Apartment","Short stay: Whole house"];
+function isStay(c){return String(c||"").indexOf("Short stay")==0}
+function unit(x){return isStay(x.category)?" /night":" /month"}
+var AM=["Water 24hrs","Security guard","Parking","Prepaid meter","Balcony","Tiled floor","Hot shower","Pets allowed","Borehole water","CCTV","WiFi","Kitchen","TV"];
+var EMO={"Bedsitter":"🛏️","Single room":"🚪","1 Bedroom":"🏠","2 Bedroom":"🏡","3 Bedroom":"🏘️","Shop":"🏪","Office":"🏢","Short stay: Room":"🛌","Short stay: Apartment":"🏨","Short stay: Whole house":"🏡"};
 var ready=CFG&&CFG.SUPABASE_URL&&CFG.SUPABASE_URL.indexOf("PASTE")<0;
 var sb=ready?supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY):null;
 if(!ready)document.getElementById("setup").style.display="block";
@@ -135,6 +140,7 @@ fill($("ft"),Object.keys(TOWNS));fillEstates($("fe"),"","All estates");fill($("p
 $("p_a").innerHTML=AM.map(function(a){return '<label><input type="checkbox" value="'+a+'"> '+a+'</label>'}).join("");
 
 $("ft").onchange=function(){var t=$("ft").value;if(t){fillEstates($("fe"),t,"All estates")}else{fillEstates($("fe"),"","All estates")}render()};
+$("p_c").onchange=function(){var st=isStay($("p_c").value);$("p_stay").style.display=st?"block":"none";$("p_rl").textContent=st?"Price per night (KSh)":"Monthly rent (KSh)"};
 $("p_t").onchange=function(){fillEstates($("p_e"),$("p_t").value);$("p_eo").style.display="none"};
 $("p_e").onchange=function(){$("p_eo").style.display=$("p_e").value==OTHER?"block":"none"};
 async function load(){
@@ -146,7 +152,7 @@ async function load(){
 }
 function filt(){
   var e=$("fe").value,c=$("fc").value,rt=+$("fr").value,a=$("fa").value,s=$("fs").value;
-  var f=LIST.filter(function(x){return(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
+  var f=LIST.filter(function(x){return(!$("fk").value||($("fk").value=="stay")==isStay(x.category))&&(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
   if(s=="low")f.sort(function(a,b){return a.rent-b.rent});if(s=="high")f.sort(function(a,b){return b.rent-a.rent});
   return f
 }
@@ -154,7 +160,7 @@ function render(){
   var f=filt();$("count").textContent=ready?f.length+" vacant house"+(f.length==1?"":"s"):"";
   $("list").innerHTML=f.length?f.map(function(x){
     var img=x.photos&&x.photos[0];
-    return '<button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut"> /month</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div><div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button>'
+    return '<button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div><div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button>'
   }).join(""):'<div class="empty">No houses match yet. Try another estate or a higher rent.</div>';
   if(map)drawMap(f)
 }
@@ -172,7 +178,7 @@ function drawMap(f){
 }
 document.addEventListener("click",function(e){var a=e.target.closest("[data-open]");if(a){e.preventDefault();openD(a.getAttribute("data-open"))}});
 $("vl").onclick=function(){setView("list")};$("vm").onclick=function(){setView("map")};
-["fe","fc","fr","fa","fs"].forEach(function(i){$(i).oninput=render});
+["fk","fe","fc","fr","fa","fs"].forEach(function(i){$(i).oninput=render});
 $("list").onclick=function(e){var c=e.target.closest(".card");if(c)openD(c.dataset.id)};
 
 function openD(id){
@@ -180,7 +186,7 @@ function openD(id){
   if(ready)sb.rpc("bump_views",{p_id:id});
   var days=Math.max(0,Math.ceil((new Date(x.expires_at)-Date.now())/864e5));
   var imgs=x.photos&&x.photos.length?'<div class="imgs">'+x.photos.map(function(u){return '<div style="background-image:url(\''+esc(u)+'\')"></div>'}).join("")+'</div>':'<div class="ph" style="border-radius:10px;margin-bottom:10px">'+(EMO[x.category]||"🏠")+'</div>';
-  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+' /month</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div><p>Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
+  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div><p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
   $("un").onclick=async function(){
     var r=await sb.rpc("get_contact",{p_id:id});
     if(r.error||!r.data||!r.data.length){$("ct").textContent="This listing is no longer available.";return}
@@ -231,7 +237,7 @@ $("p_s").onclick=async function(){
       urls.push(sb.storage.from("photos").getPublicUrl(path).data.publicUrl)
     }
     var a=Array.prototype.slice.call($("p_a").querySelectorAll("input:checked")).map(function(i){return i.value});
-    step="saving";var row={id:id,town:$("p_t").value,estate:($("p_e").value==OTHER?$("p_eo").value.trim():$("p_e").value),plot_name:n,landmark:$("p_l").value.trim()||null,category:$("p_c").value,rent:r,deposit:+$("p_d").value||null,description:$("p_ds").value.trim()||null,amenities:a,contact_name:$("p_cn").value.trim()||null,contact_role:$("p_ro").value,contact_phone:p,lat:gps?gps.lat:null,lng:gps?gps.lng:null,photos:urls,manage_code:code};
+    step="saving";var row={id:id,town:$("p_t").value,estate:($("p_e").value==OTHER?$("p_eo").value.trim():$("p_e").value),plot_name:n,landmark:$("p_l").value.trim()||null,category:$("p_c").value,rent:r,deposit:+$("p_d").value||null,description:((isStay($("p_c").value)?("Up to "+(+$("p_g").value||"?")+" guests \u00b7 Min "+(+$("p_mn").value||1)+" night(s). "):"")+$("p_ds").value.trim())||null,amenities:a,contact_name:$("p_cn").value.trim()||null,contact_role:$("p_ro").value,contact_phone:p,lat:gps?gps.lat:null,lng:gps?gps.lng:null,photos:urls,manage_code:code};
     var ins=await sb.from("listings").insert(row);
     if(ins.error&&/town/i.test(ins.error.message||"")){delete row.town;ins=await sb.from("listings").insert(row)}
     if(ins.error)throw ins.error;
