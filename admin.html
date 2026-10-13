@@ -19,6 +19,7 @@ button,input{font:inherit}input{width:100%;padding:10px;border-radius:10px;borde
 .ph{display:flex;gap:6px;overflow-x:auto;margin:8px 0}.ph a{flex:0 0 120px;height:90px;border-radius:8px;background:center/cover}
 .mut{color:var(--mut);font-size:13px}.stats{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}.stats div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:8px 14px}
 #msg{color:var(--r)}
+.vf{display:inline-block;background:#1d9bf0;color:#fff;font-weight:700;font-size:11px;padding:2px 8px;border-radius:20px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -72,9 +73,9 @@ function draw(){
     h=f.length?f.map(function(x){
       var exp=x.expires_at?' · expires '+new Date(x.expires_at).toLocaleDateString():'';
       var btns=x.status=="pending"?'<button class="btn" data-a="approve" data-id="'+x.id+'">Approve</button><button class="btn r" data-a="reject" data-id="'+x.id+'">Reject</button>':
-        x.status=="live"?'<button class="btn o" data-a="verify" data-id="'+x.id+'">'+(x.verified?"Remove":"Add")+' verified badge</button><button class="btn alt" data-a="taken" data-id="'+x.id+'">Mark taken</button><button class="btn alt" data-a="renew" data-id="'+x.id+'">Renew 30 days</button>':
+        x.status=="live"?'<button class="btn o" data-a="verify" data-id="'+x.id+'">'+(x.verified?"Remove blue badge":"I visited: add blue badge")+'</button><button class="btn alt" data-a="taken" data-id="'+x.id+'">Mark taken</button><button class="btn alt" data-a="renew" data-id="'+x.id+'">Renew 30 days</button>':
         '<button class="btn alt" data-a="approve" data-id="'+x.id+'">Re-publish</button>';
-      return '<div class="item"><b>'+money(x.rent)+(String(x.category).indexOf('Short stay')==0?' /night':'')+'</b> · '+esc(x.category)+' · '+esc(x.plot_name)+', '+esc(x.estate)+', '+esc(x.town||'Nairobi')+(x.verified?' ✔':'')+'<div class="mut">'+esc(x.landmark||"")+' · Deposit '+money(x.deposit||x.rent)+exp+' · '+(x.views||0)+' views</div><div>'+esc(x.description||"")+'</div><div class="mut">'+esc(x.amenities.join(", "))+'</div><div><b>'+esc(x.contact_name||"")+'</b> ('+esc(x.contact_role||"")+') <a href="tel:'+esc(x.contact_phone)+'">'+esc(x.contact_phone)+'</a>'+(x.lat?' · <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+x.lat+','+x.lng+'">map</a>':' · <span class="mut">no GPS</span>')+'</div><div class="ph">'+x.photos.map(function(u){return '<a target="_blank" rel="noopener" href="'+esc(u)+'" style="background-image:url(\''+esc(u)+'\')"></a>'}).join("")+'</div>'+btns+'<button class="btn r" data-a="delete" data-id="'+x.id+'">Delete</button></div>'
+      return '<div class="item"><b>'+money(x.rent)+(String(x.category).indexOf('Short stay')==0?' /night':'')+'</b> · '+esc(x.category)+' · '+esc(x.plot_name)+', '+esc(x.estate)+', '+esc(x.town||'Nairobi')+(x.verified?' <span class="vf">✔ Verified</span>':'')+'<div class="mut">'+esc(x.landmark||"")+' · Deposit '+money(x.deposit||x.rent)+exp+' · '+(x.views||0)+' views</div><div>'+esc(x.description||"")+'</div><div class="mut">'+esc(x.amenities.join(", "))+'</div><div><b>'+esc(x.contact_name||"")+'</b> ('+esc(x.contact_role||"")+') <a href="tel:'+esc(x.contact_phone)+'">'+esc(x.contact_phone)+'</a>'+(x.lat?' · <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+x.lat+','+x.lng+'">map</a>':' · <span class="mut">no GPS</span>')+'</div><div class="ph">'+x.photos.map(function(u){return '<a target="_blank" rel="noopener" href="'+esc(u)+'" style="background-image:url(\''+esc(u)+'\')"></a>'}).join("")+'</div>'+btns+'<button class="btn r" data-a="delete" data-id="'+x.id+'">Delete</button></div>'
     }).join(""):'<p class="mut">Nothing here.</p>'
   }
   $("rows").innerHTML=h
@@ -87,7 +88,7 @@ $("rows").onclick=async function(e){
   else if(a=="renew")res=await sb.from("listings").update({expires_at:iso(30*day)}).eq("id",id);
   else if(a=="reject")res=await sb.from("listings").update({status:"rejected"}).eq("id",id);
   else if(a=="taken"||a=="takedown")res=await sb.from("listings").update({status:"taken"}).eq("id",id);
-  else if(a=="verify"){var x=ALL.filter(function(y){return y.id==id})[0];res=await sb.from("listings").update({verified:!x.verified}).eq("id",id)}
+  else if(a=="verify"){var x=ALL.filter(function(y){return y.id==id})[0];if(!x.verified&&!confirm("Give the blue badge only after you have visited this property in person. Continue?")){b.disabled=false;return}res=await sb.from("listings").update({verified:!x.verified}).eq("id",id)}
   else if(a=="delete"){if(!confirm("Delete this listing for good?")){b.disabled=false;return}res=await sb.from("listings").delete().eq("id",id)}
   if(a=="takedown"||a=="resolve")await sb.from("reports").update({resolved:true}).eq("id",b.dataset.rep);
   if(res&&res.error)alert("Failed: "+res.error.message);
