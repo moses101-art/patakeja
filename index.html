@@ -30,7 +30,11 @@ select,input,textarea{width:100%;padding:10px;border-radius:10px;border:1px soli
 .cb{padding:10px 12px}.price{font-weight:800;color:var(--g);font-size:18px}
 .mut{color:var(--mut);font-size:13px}
 .chip{display:inline-block;border:1px solid var(--bd);border-radius:20px;padding:2px 9px;font-size:12px;margin:2px 3px 0 0}
-.vf{color:var(--g);font-weight:700;font-size:12px}
+.vf{display:inline-block;background:#1d9bf0;color:#fff;font-weight:700;font-size:11px;padding:2px 8px;border-radius:20px;white-space:nowrap;vertical-align:middle}
+.vw{font-size:12px;color:var(--mut);margin:2px 0}
+.vi{font-size:12px;color:#1d9bf0}
+.vbox{background:#eaf5fe;color:#0b3d62;border:1px solid #b9defa;border-radius:10px;padding:10px 12px;margin:12px 0;font-size:14px}
+@media (prefers-color-scheme:dark){.vbox{background:#0f2a3d;color:#cfe8fb;border-color:#1d4a6b}}
 #map{display:none;height:460px;border:1px solid var(--bd);border-radius:14px;z-index:0}
 .note{font-size:12px;color:var(--mut);margin:8px 0}
 .banner{background:#fff3cd;color:#5a4300;padding:10px 14px;border-radius:10px;margin:12px 0;display:none}
@@ -59,9 +63,11 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
   <select id="fc" aria-label="House type"><option value="">All types</option></select>
   <input id="fr" type="number" inputmode="numeric" placeholder="Max rent (KSh)" aria-label="Max rent">
   <select id="fa" aria-label="Amenity"><option value="">Any amenity</option></select>
+  <select id="fv" aria-label="Verified"><option value="">All listings</option><option value="1">Verified only</option></select>
   <select id="fs" aria-label="Sort"><option value="new">Newest</option><option value="low">Lowest rent</option><option value="high">Highest rent</option></select>
 </div>
 <div class="warn">⚠️ <b>Stay safe:</b> Never send money to anyone until you have seen the house or shop in person. Pay only through certified, traceable channels (bank, or an official M-Pesa Paybill/Till) and get a receipt and a written agreement. PataKeja only connects landlords and tenants and is not liable for any loss.</div>
+<div class="vbox"><span class="vf">✔ Verified</span> means a PataKeja team member visited the house in person. <a href="#" data-vinfo>What does this mean?</a></div>
 <div class="bar"><div id="count" class="mut">Loading…</div>
   <div class="seg"><button id="vl" class="on">List</button><button id="vm">Map</button></div></div>
 <div id="list" class="grid"></div>
@@ -145,14 +151,16 @@ $("p_t").onchange=function(){fillEstates($("p_e"),$("p_t").value);$("p_eo").styl
 $("p_e").onchange=function(){$("p_eo").style.display=$("p_e").value==OTHER?"block":"none"};
 async function load(){
   if(!ready){$("count").textContent="";render();return}
-  var r=await sb.from("listings").select("id,town,estate,plot_name,landmark,category,rent,deposit,description,amenities,photos,verified,created_at,expires_at,pub_lat,pub_lng").eq("status","live").order("created_at",{ascending:false}).limit(500);
-  if(r.error){r=await sb.from("listings").select("id,estate,plot_name,landmark,category,rent,deposit,description,amenities,photos,verified,created_at,expires_at,pub_lat,pub_lng").eq("status","live").order("created_at",{ascending:false}).limit(500)}
+  var base="id,estate,plot_name,landmark,category,rent,deposit,description,amenities,photos,verified,created_at,expires_at,pub_lat,pub_lng",r,tries=[base+",town,views",base+",town",base+",views",base];
+  for(var k=0;k<tries.length;k++){r=await sb.from("listings").select(tries[k]).eq("status","live").order("created_at",{ascending:false}).limit(500);if(!r.error)break}
   if(r.error){$("count").textContent="Could not load houses. Check your internet and try again.";return}
   LIST=r.data;render()
 }
+function badge(x){return x.verified?' <span class="vf">✔ Verified</span>':''}
+function vw(x){var n=+x.views||0;return n>0?'<div class="vw">👁 '+n.toLocaleString("en-KE")+(n==1?" view":" views")+'</div>':''}
 function filt(){
   var e=$("fe").value,c=$("fc").value,rt=+$("fr").value,a=$("fa").value,s=$("fs").value;
-  var f=LIST.filter(function(x){return(!$("fk").value||($("fk").value=="stay")==isStay(x.category))&&(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
+  var f=LIST.filter(function(x){return(!$("fk").value||($("fk").value=="stay")==isStay(x.category))&&(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!$("fv").value||x.verified)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
   if(s=="low")f.sort(function(a,b){return a.rent-b.rent});if(s=="high")f.sort(function(a,b){return b.rent-a.rent});
   return f
 }
@@ -160,7 +168,7 @@ function render(){
   var f=filt();$("count").textContent=ready?f.length+" vacant house"+(f.length==1?"":"s"):"";
   $("list").innerHTML=f.length?f.map(function(x){
     var img=x.photos&&x.photos[0];
-    return '<button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div><div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button>'
+    return '<button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+badge(x)+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button>'
   }).join(""):'<div class="empty">No houses match yet. Try another estate or a higher rent.</div>';
   if(map)drawMap(f)
 }
@@ -178,7 +186,7 @@ function drawMap(f){
 }
 document.addEventListener("click",function(e){var a=e.target.closest("[data-open]");if(a){e.preventDefault();openD(a.getAttribute("data-open"))}});
 $("vl").onclick=function(){setView("list")};$("vm").onclick=function(){setView("map")};
-["fk","fe","fc","fr","fa","fs"].forEach(function(i){$(i).oninput=render});
+["fk","fe","fc","fr","fa","fv","fs"].forEach(function(i){$(i).oninput=render});
 $("list").onclick=function(e){var c=e.target.closest(".card");if(c)openD(c.dataset.id)};
 
 function openD(id){
@@ -186,7 +194,7 @@ function openD(id){
   if(ready)sb.rpc("bump_views",{p_id:id});
   var days=Math.max(0,Math.ceil((new Date(x.expires_at)-Date.now())/864e5));
   var imgs=x.photos&&x.photos.length?'<div class="imgs">'+x.photos.map(function(u){return '<div style="background-image:url(\''+esc(u)+'\')"></div>'}).join("")+'</div>':'<div class="ph" style="border-radius:10px;margin-bottom:10px">'+(EMO[x.category]||"🏠")+'</div>';
-  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+(x.verified?' <span class="vf">✔ Verified</span>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div><p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
+  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+badge(x)+(x.verified?' <a href="#" data-vinfo class="vi">What is this?</a>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
   $("un").onclick=async function(){
     var r=await sb.rpc("get_contact",{p_id:id});
     if(r.error||!r.data||!r.data.length){$("ct").textContent="This listing is no longer available.";return}
@@ -203,6 +211,17 @@ function openD(id){
     if(r.data===true){alert("Marked as taken. Thank you!");closeD();load()}else alert("Code not correct.")};
   $("cl").onclick=closeD;$("dm").style.display="flex"
 }
+function openV(){
+  $("db").innerHTML='<h3 style="margin:0 0 8px"><span class="vf">✔ Verified</span> by PataKeja</h3>'+
+  '<p>A blue Verified badge means a PataKeja team member <b>visited this property in person</b> and checked that:</p>'+
+  '<ul><li>the house or shop exists at the listed location</li><li>the person listing it is the landlord, caretaker or agent</li><li>the photos match what we saw</li><li>the rent and deposit match what was advertised</li></ul>'+
+  '<div class="vbox"><b>Listings without the badge</b> have not been visited yet. They are checked before going live, but we have not seen them in person. Treat them with extra care.</div>'+
+  '<p class="note">⚠️ Even for verified houses: view the property yourself, never pay before you have seen it, pay only through traceable channels and get a receipt. PataKeja never collects rent or deposits.</p>'+
+  '<p class="note">Views show how many times a listing has been opened. See something wrong? Use the Report button on the listing.</p>'+
+  '<button class="btn alt" id="cl">Close</button>';
+  $("cl").onclick=closeD;$("dm").style.display="flex"
+}
+document.addEventListener("click",function(e){var a=e.target.closest("[data-vinfo]");if(a){e.preventDefault();openV()}});
 function closeD(){$("dm").style.display="none"}
 $("dm").onclick=function(e){if(e.target==$("dm"))closeD()};
 
