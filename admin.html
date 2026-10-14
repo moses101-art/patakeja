@@ -32,7 +32,7 @@ button,input{font:inherit}input{width:100%;padding:10px;border-radius:10px;borde
   <button class="btn" id="go">Log in</button> <span id="msg"></span>
 </div>
 <div id="app" style="display:none">
-  <div class="stats" id="stats"></div>
+  <div class="stats" id="stats"></div><h3>Visitor statistics</h3><button class="btn alt" id="refreshAnalytics">Refresh statistics</button><div class="stats" id="analytics" aria-live="polite">Loading statistics…</div>
   <div class="tabs"><button data-t="pending" class="on">Pending</button><button data-t="live">Live</button><button data-t="reports">Reports</button><button data-t="old">Taken / rejected</button></div>
   <div id="rows"></div>
 </div>
@@ -58,8 +58,16 @@ document.querySelector(".tabs").onclick=function(e){var b=e.target.closest("butt
 async function load(){
   var a=await sb.from("listings").select("*").order("created_at",{ascending:false}).limit(1000);
   var r=await sb.from("reports").select("*").eq("resolved",false).order("created_at",{ascending:false});
-  ALL=a.data||[];REP=r.data||[];draw()
+  ALL=a.data||[];REP=r.data||[];
+  try{var c=await sb.rpc('pk_admin_listing_counts');if(!c.error&&c.data){var m={};c.data.forEach(function(x){m[x.id]=x});ALL.forEach(function(x){if(m[x.id]){x.views=Number(m[x.id].views);x.pk_contacts=Number(m[x.id].contacts)}})}}catch(e){}
+  draw();loadAnalytics()
 }
+async function loadAnalytics(){
+  try{var r=await sb.rpc('pk_admin_stats');if(r.error)throw r.error;
+  var s=r.data;$("analytics").innerHTML=[['Website visits',s.visits],['Estimated unique browsers',s.visitors],['Visits today',s.today],['Visits in last 7 days',s.week],['Tracked advert opens',s.views],['Contact reveals',s.contacts]].map(function(x){return '<div>'+x[0]+': <b>'+Number(x[1]).toLocaleString('en-KE')+'</b></div>'}).join('');
+  }catch(e){$("analytics").textContent='Statistics unavailable. Run analytics.sql and register your admin user ID as described in SETUP.txt.'}
+}
+$("refreshAnalytics").onclick=loadAnalytics;
 function cnt(s){return ALL.filter(function(x){return x.status==s}).length}
 function draw(){
   var v=ALL.reduce(function(t,x){return t+(x.views||0)},0);
@@ -75,7 +83,7 @@ function draw(){
       var btns=x.status=="pending"?'<button class="btn" data-a="approve" data-id="'+x.id+'">Approve</button><button class="btn r" data-a="reject" data-id="'+x.id+'">Reject</button>':
         x.status=="live"?'<button class="btn o" data-a="verify" data-id="'+x.id+'">'+(x.verified?"Remove blue badge":"I visited: add blue badge")+'</button><button class="btn alt" data-a="taken" data-id="'+x.id+'">Mark taken</button><button class="btn alt" data-a="renew" data-id="'+x.id+'">Renew 30 days</button>':
         '<button class="btn alt" data-a="approve" data-id="'+x.id+'">Re-publish</button>';
-      return '<div class="item"><b>'+money(x.rent)+(String(x.category).indexOf('Short stay')==0?' /night':'')+'</b> · '+esc(x.category)+' · '+esc(x.plot_name)+', '+esc(x.estate)+', '+esc(x.town||'Nairobi')+(x.verified?' <span class="vf">✔ Verified</span>':'')+'<div class="mut">'+esc(x.landmark||"")+' · Deposit '+money(x.deposit||x.rent)+exp+' · '+(x.views||0)+' views</div><div>'+esc(x.description||"")+'</div><div class="mut">'+esc(x.amenities.join(", "))+'</div><div><b>'+esc(x.contact_name||"")+'</b> ('+esc(x.contact_role||"")+') <a href="tel:'+esc(x.contact_phone)+'">'+esc(x.contact_phone)+'</a>'+(x.lat?' · <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+x.lat+','+x.lng+'">map</a>':' · <span class="mut">no GPS</span>')+'</div><div class="ph">'+x.photos.map(function(u){return '<a target="_blank" rel="noopener" href="'+esc(u)+'" style="background-image:url(\''+esc(u)+'\')"></a>'}).join("")+'</div>'+btns+'<button class="btn r" data-a="delete" data-id="'+x.id+'">Delete</button></div>'
+      return '<div class="item"><b>'+money(x.rent)+(String(x.category).indexOf('Short stay')==0?' /night':'')+'</b> · '+esc(x.category)+' · '+esc(x.plot_name)+', '+esc(x.estate)+', '+esc(x.town||'Nairobi')+(x.verified?' <span class="vf">✔ Verified</span>':'')+'<div class="mut">'+esc(x.landmark||"")+' · Deposit '+money(x.deposit||x.rent)+exp+' · '+(x.views||0)+' views · '+(x.pk_contacts||0)+' contact reveals</div><div>'+esc(x.description||"")+'</div><div class="mut">'+esc(x.amenities.join(", "))+'</div><div><b>'+esc(x.contact_name||"")+'</b> ('+esc(x.contact_role||"")+') <a href="tel:'+esc(x.contact_phone)+'">'+esc(x.contact_phone)+'</a>'+(x.lat?' · <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+x.lat+','+x.lng+'">map</a>':' · <span class="mut">no GPS</span>')+'</div><div class="ph">'+x.photos.map(function(u){return '<a target="_blank" rel="noopener" href="'+esc(u)+'" style="background-image:url(\''+esc(u)+'\')"></a>'}).join("")+'</div>'+btns+'<button class="btn r" data-a="delete" data-id="'+x.id+'">Delete</button></div>'
     }).join(""):'<p class="mut">Nothing here.</p>'
   }
   $("rows").innerHTML=h
