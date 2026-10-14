@@ -154,10 +154,48 @@ async function load(){
   var base="id,estate,plot_name,landmark,category,rent,deposit,description,amenities,photos,verified,created_at,expires_at,pub_lat,pub_lng",r,tries=[base+",town,views",base+",town",base+",views",base];
   for(var k=0;k<tries.length;k++){r=await sb.from("listings").select(tries[k]).eq("status","live").order("created_at",{ascending:false}).limit(500);if(!r.error)break}
   if(r.error){$("count").textContent="Could not load houses. Check your internet and try again.";return}
-  LIST=r.data;render()
+  LIST=r.data;
+  try{var counts=await sb.rpc('pk_listing_counts',{p_ids:LIST.map(function(x){return String(x.id)})});
+  if(!counts.error&&counts.data){var byId={};counts.data.forEach(function(x){byId[x.id]=x.views});LIST.forEach(function(x){if(byId[x.id]!=null)x.views=Number(byId[x.id])})}}catch(e){}
+  render()
 }
+
+// Anonymous browser identifier: no names, phone numbers or IP addresses collected here.
+var pkVisitor;
+try { pkVisitor=localStorage.getItem('pk_visitor_v1'); if(!pkVisitor){pkVisitor=uid();localStorage.setItem('pk_visitor_v1',pkVisitor)} } catch(e){pkVisitor=uid()}
+var pkPending={};
+async function pkRecord(kind,id){
+  if(!ready)return;
+  var key=kind+':'+(id||'');if(pkPending[key])return;
+  pkPending[key]=true;
+  try {
+    var r=await sb.rpc('pk_record_event',{p_kind:kind,p_listing:id||'',p_visitor:pkVisitor});
+    if(r.error)throw r.error;
+    if(kind==='view')await pkRefresh(id);
+  }catch(e){console.warn('PataKeja analytics unavailable:',e.message)}
+  finally{delete pkPending[key]}
+}
+async function pkRefresh(id){
+  var r=await sb.rpc('pk_listing_counts',{p_ids:[String(id)]});
+  if(r.error||!r.data||!r.data.length)return;
+  var x=LIST.find(function(y){return String(y.id)===String(id)});if(!x)return;
+  x.views=Number(r.data[0].views);render();
+  var el=document.querySelector('#db .vw');
+  if(el&&el.dataset.listing===String(id))el.textContent='👁 '+x.views.toLocaleString('en-KE')+' views';
+}
+async function pkOwner(id){
+  var code=prompt('Enter the owner code you received when posting this advert:');if(!code)return;
+  try{
+    var r=await sb.rpc('pk_owner_stats',{p_listing:String(id),p_code:code.trim()});
+    if(r.error||!r.data)throw new Error('Could not load statistics. Check your owner code and Supabase setup.');
+    var s=r.data;
+    alert('YOUR ADVERT STATISTICS\nTotal views: '+s.views+'\nViews today: '+s.today+'\nViews in the last 7 days: '+s.week+'\nEstimated unique browsers: '+s.visitors+'\nContact reveals: '+s.contacts+'\n\nDetailed tracking starts when the analytics setup is installed.');
+  }catch(e){alert(e.message)}
+}
+if(ready)pkRecord('visit','');
+
 function badge(x){return x.verified?' <span class="vf">✔ Verified</span>':''}
-function vw(x){var n=+x.views||0;return n>0?'<div class="vw">👁 '+n.toLocaleString("en-KE")+(n==1?" view":" views")+'</div>':''}
+function vw(x){var n=+x.views||0;return '<div class="vw" data-listing="'+esc(x.id)+'">👁 '+n.toLocaleString("en-KE")+(n==1?" view":" views")+'</div>'}
 function filt(){
   var e=$("fe").value,c=$("fc").value,rt=+$("fr").value,a=$("fa").value,s=$("fs").value;
   var f=LIST.filter(function(x){return(!$("fk").value||($("fk").value=="stay")==isStay(x.category))&&(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!$("fv").value||x.verified)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
@@ -191,13 +229,14 @@ $("list").onclick=function(e){var c=e.target.closest(".card");if(c)openD(c.datas
 
 function openD(id){
   var x=LIST.filter(function(y){return y.id==id})[0];if(!x)return;
-  if(ready)sb.rpc("bump_views",{p_id:id});
+  pkRecord('view',String(id));
   var days=Math.max(0,Math.ceil((new Date(x.expires_at)-Date.now())/864e5));
   var imgs=x.photos&&x.photos.length?'<div class="imgs">'+x.photos.map(function(u){return '<div style="background-image:url(\''+esc(u)+'\')"></div>'}).join("")+'</div>':'<div class="ph" style="border-radius:10px;margin-bottom:10px">'+(EMO[x.category]||"🏠")+'</div>';
-  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+badge(x)+(x.verified?' <a href="#" data-vinfo class="vi">What is this?</a>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
+  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+badge(x)+(x.verified?' <a href="#" data-vinfo class="vi">What is this?</a>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="ast">Advert statistics</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
   $("un").onclick=async function(){
     var r=await sb.rpc("get_contact",{p_id:id});
     if(r.error||!r.data||!r.data.length){$("ct").textContent="This listing is no longer available.";return}
+    pkRecord('contact',String(id));
     var c=r.data[0],ph=String(c.contact_phone).replace(/\D/g,""),wa=ph.replace(/^0/,"254");
     $("ct").innerHTML='<div><b>'+esc(c.contact_name||"Owner")+'</b> ('+esc(c.contact_role||"")+')<br><a href="tel:'+esc(ph)+'">📞 '+esc(c.contact_phone)+'</a> · <a href="https://wa.me/'+esc(wa)+'?text='+encodeURIComponent("Hi, I saw your "+x.category+" in "+x.estate+" on PataKeja. Is it still available?")+'" target="_blank" rel="noopener">WhatsApp</a>'+(c.lat!=null?'<br><a href="https://www.google.com/maps/dir/?api=1&destination='+c.lat+','+c.lng+'" target="_blank" rel="noopener">🧭 Directions</a>':'')+'</div>'
   };
@@ -205,6 +244,7 @@ function openD(id){
   $("rp").onclick=async function(){
     var why=prompt("What is wrong? Type: fake, already taken, wrong price, wrong location, or other");if(!why)return;
     var r=await sb.from("reports").insert({listing_id:id,reason:why.slice(0,200)});alert(r.error?"Could not send the report. Try again.":"Thank you. We will check this listing.")};
+  $("ast").onclick=function(){pkOwner(id)};
   $("tk").onclick=async function(){
     var code=prompt("Enter your owner code (shown when you posted):");if(!code)return;
     var r=await sb.rpc("mark_taken",{p_id:id,p_code:code.trim()});
