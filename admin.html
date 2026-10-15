@@ -34,7 +34,7 @@ button,input{font:inherit}input{width:100%;padding:10px;border-radius:10px;borde
 <div id="app" style="display:none">
   <div class="stats" id="stats"></div><h3>Visitor statistics</h3><button class="btn alt" id="refreshAnalytics">Refresh statistics</button><div class="stats" id="analytics" aria-live="polite">Loading statistics…</div>
   <div class="tabs"><button data-t="pending" class="on">Pending</button><button data-t="live">Live</button><button data-t="reports">Reports</button><button data-t="old">Taken / rejected</button></div>
-  <div id="rows"></div>
+  <div id="rows"></div><hr><h2>Service providers & safety</h2><button class="btn alt" id="refreshServices">Refresh service applications</button><div id="service-admin" aria-live="polite"></div>
 </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -103,6 +103,33 @@ $("rows").onclick=async function(e){
   load()
 };
 start();
+</script>
+<script>
+(function(){
+ var box=document.getElementById('service-admin'),data;
+ async function call(n,a){var r=await sb.rpc(n,a||{});if(r.error)throw Error(r.error.message);return r.data}
+ function button(id,action,text){return '<button class="btn alt" data-sm-id="'+esc(id)+'" data-sm-action="'+action+'">'+text+'</button>'}
+ function shortId(id){return String(id).slice(0,8)}
+ async function refresh(){
+  box.innerHTML='<p class="mut">Loading service providers…</p>';
+  try{data=await call('pk_services_admin_data');drawServices()}catch(e){box.textContent='Services unavailable: '+e.message}
+ }
+ function drawServices(){
+  var pending=data.providers.filter(function(p){return p.status==='pending'}).length;
+  box.innerHTML='<div class="stats"><div>Pending providers: <b>'+pending+'</b></div><div>Open service reports: <b>'+data.reports.length+'</b></div></div><p class="mut">Approval publishes the business profile and phone. Add check badges only after you have completed the stated check.</p><h3>Provider applications</h3>'+(data.providers.length?data.providers.map(function(p){return '<article class="item"><b>'+esc(p.name)+'</b> · '+esc(p.category)+'<div class="mut">'+esc(p.status)+' · '+(p.paused?'Paused · ':'')+esc(p.town)+' · '+esc(p.areas.join(', '))+'</div><p>'+esc(p.description)+'</p><p>'+esc(p.price_note)+' · '+esc(p.availability)+'</p><p>Business phone: '+esc(p.phone)+'<br>Owner ID: '+esc(p.owner_id)+'<br>Checks: '+(p.phone_checked?'phone checked':'phone not checked')+'; '+(p.identity_checked?'identity checked':'identity not checked')+'</p>'+button(p.id,'approve','Approve / restore')+button(p.id,'reject','Reject')+button(p.id,'suspend','Suspend')+button(p.id,'phone_checked','I checked this phone')+button(p.id,'identity_checked','I checked identity')+button(p.id,'clear_checks','Remove check badges')+'</article>'}).join(''):'<p class="mut">No provider applications yet.</p>')+'<h3>Service reports</h3>'+(data.reports.length?data.reports.map(function(r){var p=data.providers.find(function(p){return p.id===r.provider_id});return '<article class="item"><b>'+esc(p?p.name:r.provider_id)+'</b><p>'+esc(r.reason)+'</p><p class="mut">Reporter: '+esc(r.reporter_id)+' · '+esc(new Date(r.created_at).toLocaleString())+'</p>'+button(r.id,'resolve_report','Resolve report')+button(r.provider_id,'suspend','Suspend provider')+'</article>'}).join(''):'<p class="mut">No open service reports.</p>')+'<details><summary>Recent reviews — moderation</summary>'+data.reviews.map(function(r){return '<article class="item"><b>'+Number(r.rating)+' / 5 · '+(r.hidden?'Hidden':'Visible')+'</b><p>'+esc(r.body)+'</p><div class="mut">Provider '+esc(shortId(r.provider_id))+' · Booking '+esc(shortId(r.booking_id))+'</div>'+button(r.id,r.hidden?'restore_review':'hide_review',r.hidden?'Restore review':'Hide review')+'</article>'}).join('')+'</details><details><summary>Recent service activity log</summary>'+data.audit.map(function(a){return '<div class="item"><b>'+esc(a.action)+'</b> · '+esc(new Date(a.created_at).toLocaleString())+'<div class="mut">Actor '+esc(a.actor_id)+' · Record '+esc(a.entity_id)+'</div><p>'+esc(a.note)+'</p></div>'}).join('')+'</details>';
+ }
+ box.onclick=async function(e){var b=e.target.closest('[data-sm-action]');if(!b)return;
+  var action=b.dataset.smAction;
+  var instructions=action==='identity_checked'?'Describe the identity evidence you checked. Do not enter an ID number.':action==='phone_checked'?'Describe how and when you contacted this phone number.':'Explain this moderation decision (5–500 characters).';
+  var note=prompt(instructions);if(note===null)return;if(note.trim().length<5){alert('Please add a note of at least 5 characters.');return}
+  b.disabled=true;try{await call('pk_services_moderate',{p_id:b.dataset.smId,p_action:action,p_note:note.trim()});await refresh()}catch(err){alert(err.message);b.disabled=false}
+ };
+ document.getElementById('refreshServices').onclick=refresh;
+ // Show the service panel after a session is restored or login completes.
+ sb.auth.onAuthStateChange(function(event,session){if(session)setTimeout(refresh,0);else box.textContent='Sign in as an authorised admin to manage service providers.'});
+ sb.auth.getSession().then(function(r){if(r.data.session)refresh()});
+})();
+
 </script>
 </body>
 </html>
