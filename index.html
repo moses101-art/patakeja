@@ -46,12 +46,29 @@ select,input,textarea{width:100%;padding:10px;border-radius:10px;border:1px soli
 .warn{background:#fff3cd;color:#5a4300;border:1px solid #f0d98a;border-radius:10px;padding:10px 12px;margin:12px 0;font-size:14px}
 .empty{padding:30px;text-align:center;color:var(--mut);grid-column:1/-1}
 footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
+
+/* Services marketplace */
+.svc-section{margin:26px 0;padding:20px;border:1px solid var(--bd);border-radius:18px;background:var(--card)}
+.svc-section h2{margin:0;font-size:25px}.svc-kicker{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--g);text-transform:uppercase}
+.svc-actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.svc-actions a{text-decoration:none}.svc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.svc-tile{display:flex;gap:10px;padding:14px;border:1px solid var(--bd);border-radius:14px;background:var(--card);overflow-wrap:anywhere}
+.svc-icon{font-size:28px}.svc-price{font-weight:650;margin:8px 0}.svc-badge{display:inline-block;font-size:11px;background:#e6f4ec;color:#174d2d;border-radius:12px;padding:3px 7px;margin:4px 4px 0 0}
+.svc-under{padding:12px;border-top:1px solid var(--bd)}.svc-under .svc-tile{padding:8px;margin-top:8px}.svc-under .btn{font-size:12px;padding:7px 9px}.svc-under .svc-icon{font-size:20px}.svc-under .svc-price{font-size:12px;margin:3px 0}
+.svc-link{border:0;background:none;color:var(--g);text-decoration:underline;padding:8px 0;cursor:pointer;font:inherit}
+.listing-group{border:1px solid var(--bd);border-radius:14px;overflow:hidden;background:var(--card)}.listing-group>.card{width:100%;border:0;border-radius:0;display:block}
+.svc-save{padding:8px 12px}.svc-save button{font-size:13px;padding:6px 10px}.svc-empty{padding:24px;grid-column:1/-1;text-align:center;background:var(--bg);border-radius:12px}
+#svc-modal[hidden]{display:none!important}#svc-modal{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:1200;overflow:auto;padding:16px;display:flex;align-items:flex-start;justify-content:center}
+.svc-dialog{background:var(--card);color:var(--tx);border-radius:18px;padding:18px;width:100%;max-width:640px;margin:auto;overflow-wrap:anywhere}.svc-dialog-head{display:flex;justify-content:space-between;gap:10px;align-items:center}.svc-dialog-head h2{font-size:21px;margin:0}
+.svc-form label{display:block;font-size:13px;font-weight:600;margin:13px 0 5px}.svc-form input,.svc-form select,.svc-form textarea{margin-bottom:4px}.svc-form button{margin-top:12px}.svc-check{display:flex!important;align-items:flex-start;gap:8px}.svc-check input{width:auto;margin-top:4px}
+.svc-panel{border:1px solid var(--bd);border-radius:12px;padding:13px;margin:12px 0}.svc-profile-head{display:flex;gap:12px;align-items:center}.svc-error{color:#c0392b}.svc-success{color:var(--g)}.svc-modal-open{overflow:hidden}
+@media(max-width:480px){.svc-section{padding:14px}.svc-grid{grid-template-columns:1fr}.svc-actions .btn{font-size:13px}.svc-dialog{padding:14px}}
+
 </style>
 </head>
 <body>
 <header><div class="w top">
   <div><div class="logo">🏠 Pata<span>Keja</span></div><div class="tag">Pata keja, bila stress</div></div>
-  <button class="btn" id="postBtn">+ List a vacant house (free)</button>
+  <a class="btn alt" href="#services" style="text-decoration:none">Find local services</a><button class="btn alt" type="button" data-svc-account>My account / Register service</button><button class="btn" id="postBtn">+ List a vacant house (free)</button>
 </div></header>
 
 <main class="w" style="padding:0 14px">
@@ -70,10 +87,20 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
 <div class="vbox"><span class="vf">✔ Verified</span> means a PataKeja team member visited the house in person. <a href="#" data-vinfo>What does this mean?</a></div>
 <div class="bar"><div id="count" class="mut">Loading…</div>
   <div class="seg"><button id="vl" class="on">List</button><button id="vm">Map</button></div></div>
-<div id="list" class="grid"></div>
+<label class="svc-check"><input type="checkbox" id="pk-saved-filter"> Show my saved houses (on this device)</label><div id="list" class="grid"></div>
 <div id="map"></div>
 <p class="note" id="mapnote" style="display:none">Pins show the approximate area. The exact location appears with the contact details.</p>
 <p class="note">Always view a house before paying any deposit. Listings are checked before they go live and expire after 30 days.</p>
+
+<section id="services" class="svc-section" aria-labelledby="svc-heading">
+<div class="svc-kicker">Settle into your next home</div><h2 id="svc-heading">Local help, just around the corner</h2>
+<p>Find plumbers, cleaners, movers, electricians and painters serving your town.</p>
+<div class="svc-actions"><button class="btn g" type="button" data-svc-account>Register your service — free</button><button class="btn alt" type="button" data-svc-account>My account & requests</button></div>
+<div class="filters"><select id="svc-filter-category" aria-label="Service category"></select><select id="svc-filter-town" aria-label="Service town"></select><input id="svc-search" type="search" maxlength="80" placeholder="Search provider or estate" aria-label="Search providers"><button class="btn alt" type="button" id="svc-reload">Refresh services</button></div>
+<p class="mut" id="svc-result-count" aria-live="polite"></p><div id="svc-directory-results" class="svc-grid"></div>
+<p class="note">Only approved profiles appear. Check badges describe specific checks, not a guarantee. Agree the total price and work in writing before paying.</p>
+</section>
+
 </main>
 <footer><div style="max-width:700px;margin:0 auto 10px">Disclaimer: PataKeja is a listing platform only. We are not a party to any rental agreement and do not collect rent or deposits. Always view a property in person, confirm the owner or agent, and pay only through certified, traceable channels. PataKeja is not liable for any loss arising from dealings between users.</div>© PataKeja · Githurai 44 · Kasarani · Mwiki · Roysambu · Mirema · Zimmerman</footer>
 
@@ -108,6 +135,7 @@ footer{text-align:center;color:var(--mut);font-size:12px;padding:20px}
   <div id="pdone" style="display:none"></div>
 </div></div>
 
+<div id="svc-modal" hidden role="dialog" aria-modal="true" aria-labelledby="svc-modal-title"><div class="svc-dialog"><div class="svc-dialog-head"><h2 id="svc-modal-title"></h2><button class="btn alt" id="svc-close" type="button" aria-label="Close services dialog">Close</button></div><div id="svc-modal-body"></div></div></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
@@ -139,6 +167,9 @@ var sb=ready?supabase.createClient(CFG.SUPABASE_URL,CFG.SUPABASE_ANON_KEY):null;
 if(!ready)document.getElementById("setup").style.display="block";
 var $=function(i){return document.getElementById(i)};
 var LIST=[],gps=null,map=null,layer=null;
+var pkSaved=[];try{pkSaved=JSON.parse(localStorage.getItem('pk_saved_houses')||'[]');if(!Array.isArray(pkSaved))pkSaved=[]}catch(e){}
+$('pk-saved-filter').onchange=render;
+document.addEventListener('click',function(e){var b=e.target.closest('[data-save-house]');if(!b)return;var id=b.dataset.saveHouse,pos=pkSaved.indexOf(id);if(pos<0)pkSaved.push(id);else pkSaved.splice(pos,1);try{localStorage.setItem('pk_saved_houses',JSON.stringify(pkSaved))}catch(e){}render()});
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function money(n){return "KSh "+Number(n).toLocaleString("en-KE")}
 function fill(el,arr){arr.forEach(function(x){var o=document.createElement("option");o.textContent=x;el.appendChild(o)})}
@@ -198,7 +229,7 @@ function badge(x){return x.verified?' <span class="vf">✔ Verified</span>':''}
 function vw(x){var n=+x.views||0;return '<div class="vw" data-listing="'+esc(x.id)+'">👁 '+n.toLocaleString("en-KE")+(n==1?" view":" views")+'</div>'}
 function filt(){
   var e=$("fe").value,c=$("fc").value,rt=+$("fr").value,a=$("fa").value,s=$("fs").value;
-  var f=LIST.filter(function(x){return(!$("fk").value||($("fk").value=="stay")==isStay(x.category))&&(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!$("fv").value||x.verified)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
+  var f=LIST.filter(function(x){return(!x.expires_at||new Date(x.expires_at)>new Date())&&(!$('pk-saved-filter').checked||pkSaved.indexOf(String(x.id))>=0)&&(!$("fk").value||($("fk").value=="stay")==isStay(x.category))&&(!$("ft").value||(x.town||"Nairobi")==$("ft").value)&&(!e||x.estate==e)&&(!c||x.category==c)&&(!$("fv").value||x.verified)&&(!rt||x.rent<=rt)&&(!a||x.amenities.indexOf(a)>-1)});
   if(s=="low")f.sort(function(a,b){return a.rent-b.rent});if(s=="high")f.sort(function(a,b){return b.rent-a.rent});
   return f
 }
@@ -206,9 +237,9 @@ function render(){
   var f=filt();$("count").textContent=ready?f.length+" vacant house"+(f.length==1?"":"s"):"";
   $("list").innerHTML=f.length?f.map(function(x){
     var img=x.photos&&x.photos[0];
-    return '<button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+badge(x)+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button>'
+    return '<article class="listing-group"><button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+badge(x)+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button><div class="svc-save"><button class="btn alt" type="button" data-save-house="'+esc(x.id)+'">'+(pkSaved.indexOf(String(x.id))>=0?'♥ Saved':'♡ Save house')+'</button></div><div data-services-for="'+esc(x.id)+'"></div></article>'
   }).join(""):'<div class="empty">No houses match yet. Try another estate or a higher rent.</div>';
-  if(map)drawMap(f)
+  if(map)drawMap(f);if(typeof PKServices!=='undefined')PKServices.renderNearby()
 }
 function setView(v){
   $("list").style.display=v=="list"?"grid":"none";$("map").style.display=v=="map"?"block":"none";$("mapnote").style.display=v=="map"?"block":"none";
@@ -232,7 +263,7 @@ function openD(id){
   pkRecord('view',String(id));
   var days=Math.max(0,Math.ceil((new Date(x.expires_at)-Date.now())/864e5));
   var imgs=x.photos&&x.photos.length?'<div class="imgs">'+x.photos.map(function(u){return '<div style="background-image:url(\''+esc(u)+'\')"></div>'}).join("")+'</div>':'<div class="ph" style="border-radius:10px;margin-bottom:10px">'+(EMO[x.category]||"🏠")+'</div>';
-  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+badge(x)+(x.verified?' <a href="#" data-vinfo class="vi">What is this?</a>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="ast">Advert statistics</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
+  $("db").innerHTML=imgs+'<div class="price">'+money(x.rent)+unit(x)+'</div><h3 style="margin:4px 0">'+esc(x.category)+' – '+esc(x.plot_name)+badge(x)+(x.verified?' <a href="#" data-vinfo class="vi">What is this?</a>':'')+'</h3><div class="mut">'+esc(loc(x))+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<p>'+(isStay(x.category)?'':'Deposit: <b>'+money(x.deposit||x.rent)+'</b><br>')+'Available for the next '+days+' days</p>'+(x.description?'<p>'+esc(x.description)+'</p>':'')+'<div>'+x.amenities.map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div><div id="ct" style="margin:14px 0"><button class="btn g" id="un">Show contact and exact location</button></div><section id="svc-detail-near"></section><div class="note">⚠️ Never send money until you have seen the property in person. Pay only through certified, traceable channels and get a receipt. PataKeja is not liable for any loss.'+(isStay(x.category)?'<br><br>🛌 <b>Short stay tip:</b> confirm the host and the exact address first (ask for a video call). Where possible pay after you arrive and see the place. If a booking deposit is requested, use a certified channel and keep the receipt.':'')+'</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn alt" id="sh">Share on WhatsApp</button><button class="btn alt" id="rp">Report</button><button class="btn alt" id="ast">Advert statistics</button><button class="btn alt" id="tk">I am the owner: mark taken</button><button class="btn alt" id="cl">Close</button></div>';
   $("un").onclick=async function(){
     var r=await sb.rpc("get_contact",{p_id:id});
     if(r.error||!r.data||!r.data.length){$("ct").textContent="This listing is no longer available.";return}
@@ -249,7 +280,7 @@ function openD(id){
     var code=prompt("Enter your owner code (shown when you posted):");if(!code)return;
     var r=await sb.rpc("mark_taken",{p_id:id,p_code:code.trim()});
     if(r.data===true){alert("Marked as taken. Thank you!");closeD();load()}else alert("Code not correct.")};
-  $("cl").onclick=closeD;$("dm").style.display="flex"
+  $("cl").onclick=closeD;$("dm").style.display="flex";if(typeof PKServices!=="undefined")PKServices.mountDetail(x)
 }
 function openV(){
   $("db").innerHTML='<h3 style="margin:0 0 8px"><span class="vf">✔ Verified</span> by PataKeja</h3>'+
@@ -308,6 +339,124 @@ $("p_s").onclick=async function(){
   btn.disabled=false;btn.textContent="Submit for approval"
 };
 load();
+</script>
+<script>
+/* PataKeja Services: embedded in index.html; no extra JavaScript upload needed. */
+var PKServices=(function(){
+ 'use strict';
+ var providers=[],loaded=false,failed=false,user=null,account=null,activeListing=null,lastFocus=null,requestVersion=0;
+ var cats=['Plumber','Cleaner','Mover','Electrician','Painter'];
+ var icons={Plumber:'🔧',Cleaner:'✨',Mover:'🚚',Electrician:'💡',Painter:'🎨'};
+ var $s=function(id){return document.getElementById(id)};
+ function safe(s){return esc(s)}
+ function phone(s){var n=String(s||'').replace(/[\s()+-]/g,'');if(/^0[17]\d{8}$/.test(n))n='254'+n.slice(1);return /^254[17]\d{8}$/.test(n)?n:null}
+ async function rpc(name,args){if(!sb)throw Error('Please connect to the internet and try again.');var r=await sb.rpc(name,args||{});if(r.error)throw Error(r.error.message||'Could not complete this action.');return r.data}
+ function norm(s){return String(s||'').trim().toLowerCase()}
+ function matches(p,x){return norm(p.town)===norm(x.town||'Nairobi')&&p.areas.some(function(a){return norm(a)===norm(x.estate)||norm(a)==='all areas'})}
+ function nearby(x){return providers.filter(function(p){return matches(p,x)}).sort(function(a,b){return Number(b.areas.some(function(v){return norm(v)===norm(x.estate)}))-Number(a.areas.some(function(v){return norm(v)===norm(x.estate)}))})}
+ function badges(p){return (p.phone_checked?'<span class="svc-badge">Phone checked</span>':'')+(p.identity_checked?'<span class="svc-badge">Identity checked</span>':'')}
+ function rating(p){return Number(p.review_count)>0?Number(p.rating).toFixed(1)+' / 5 · '+Number(p.review_count)+' completed-booking reviews':'New provider · No reviews yet'}
+ function tile(p,compact){return '<article class="svc-tile"><div class="svc-icon" aria-hidden="true">'+icons[p.category]+'</div><div><b>'+safe(p.name)+'</b><div class="mut">'+safe(p.category)+' · '+safe(p.town)+'</div>'+(!compact?badges(p)+'<p>'+safe(p.description.slice(0,130))+'</p><div class="mut">'+safe(rating(p))+'</div>':'')+'<div class="svc-price">'+safe(p.price_note)+'</div><button type="button" class="btn alt" data-svc="'+safe(p.id)+'">'+(compact?'View provider':'View profile & request service')+'</button></div></article>'}
+ function under(x){var list=nearby(x);return '<div class="svc-under"><b>Services serving '+safe(x.estate)+'</b><div class="mut">Matched by town and provider service areas</div>'+(list.length?list.slice(0,2).map(function(p){return tile(p,true)}).join(''):'<p class="mut">No approved providers list this area yet.</p>')+'<button class="svc-link" type="button" data-svc-area="'+safe(x.town||'Nairobi')+'">Browse local services</button></div>'}
+ function renderNearby(){document.querySelectorAll('[data-services-for]').forEach(function(el){var x=LIST.find(function(l){return String(l.id)===el.dataset.servicesFor});if(x)el.innerHTML=loaded?under(x):'<p class="mut">'+(failed?'Services are temporarily unavailable.':'Loading nearby services…')+'</p>'});if(activeListing&&$s('svc-detail-near'))$s('svc-detail-near').innerHTML=loaded?under(activeListing):'<p class="mut">Services are temporarily unavailable.</p>'}
+ function renderDirectory(){
+  var root=$s('svc-directory-results');if(!root)return;
+  if(!loaded){root.innerHTML='<p class="mut">'+(failed?'Could not load services. Please try again.':'Loading providers…')+'</p>';return}
+  var c=$s('svc-filter-category').value,t=norm($s('svc-filter-town').value),q=norm($s('svc-search').value);
+  var list=providers.filter(function(p){return (!c||p.category===c)&&(!t||norm(p.town)===t)&&(!q||norm([p.name,p.description,p.town].concat(p.areas).join(' ')).indexOf(q)>=0)});
+  root.innerHTML=list.length?list.map(function(p){return tile(p,false)}).join(''):'<div class="svc-empty"><b>Your area needs great local professionals.</b><p>No approved providers match these filters yet.</p><button class="btn g" type="button" data-svc-account>Register your service</button></div>';
+  $s('svc-result-count').textContent=list.length+' approved provider'+(list.length===1?'':'s');
+ }
+ async function load(){failed=false;try{providers=await rpc('pk_services_list');loaded=true;var townSelect=$s('svc-filter-town'),selectedTown=townSelect.value,towns=Array.from(new Set(Object.keys(TOWNS).concat(providers.map(function(p){return p.town})))).sort();townSelect.innerHTML='<option value="">All towns</option>'+towns.map(function(t){return '<option>'+safe(t)+'</option>'}).join('');townSelect.value=selectedTown}catch(e){failed=true;loaded=false}renderDirectory();renderNearby()}
+ function open(body,title){lastFocus=document.activeElement;$s('svc-modal-body').innerHTML=body;$s('svc-modal-title').textContent=title;$s('svc-modal').hidden=false;document.body.classList.add('svc-modal-open');$s('svc-close').focus();requestVersion++}
+ function close(){$s('svc-modal').hidden=true;document.body.classList.remove('svc-modal-open');requestVersion++;if(lastFocus&&lastFocus.isConnected)lastFocus.focus()}
+ function status(text,error){var m=$s('svc-message');if(m){m.textContent=text;m.className=error?'svc-error':'svc-success'}}
+ function message(){return '<p id="svc-message" role="status" aria-live="polite"></p>'}
+ function input(label,id,value,type,max,required){return '<label for="'+id+'">'+safe(label)+'</label><input id="'+id+'" type="'+(type||'text')+'" value="'+safe(value||'')+'" maxlength="'+(max||100)+'" '+(required===false?'':'required')+'>'}
+ async function session(){var r=await sb.auth.getSession();user=r.data.session?r.data.session.user:null;return user}
+ function authView(note){
+  open('<p>'+(note||'Sign in to request services, register your business or manage bookings.')+'</p><form id="svc-auth" class="svc-form">'+input('Email','svc-email','','email',254)+input('Password (at least 12 characters)','svc-password','','password',128)+'<div class="svc-actions"><button class="btn g" type="submit">Sign in</button><button class="btn alt" id="svc-signup" type="button">Create account</button></div>'+message()+'</form><p class="note">Confirm your email before signing in. Your email and password are never displayed on a service profile.</p>','Your PataKeja account');
+  $s('svc-auth').onsubmit=async function(e){e.preventDefault();await authenticate(false)};
+  $s('svc-signup').onclick=function(){if($s('svc-auth').reportValidity())authenticate(true)};
+ }
+ async function authenticate(signup){
+  var email=$s('svc-email').value.trim(),pw=$s('svc-password').value;
+  if(signup&&pw.length<12){status('Use a password with at least 12 characters.',true);return}
+  var buttons=Array.from($s('svc-auth').querySelectorAll('button'));buttons.forEach(function(b){b.disabled=true});
+  try{var r=signup?await sb.auth.signUp({email:email,password:pw,options:{emailRedirectTo:location.origin+location.pathname}}):await sb.auth.signInWithPassword({email:email,password:pw});
+   if(r.error)throw r.error;
+   if(signup&&!r.data.session){status('Check your email and confirm your account. Then return here and sign in.');return}
+   await accountView();
+  }catch(e){status(e.message||'Could not sign in.',true)}finally{buttons.forEach(function(b){b.disabled=false})}
+ }
+ async function accountView(){
+  if(!ready){open('<p>Services are not connected yet. Please try later.</p>','Services');return}
+  try{if(!await session()){authView();return}
+   account=await rpc('pk_services_account');var p=account.profile;
+   open('<p class="mut">Signed in as '+safe(user.email)+'</p><div class="svc-actions"><button class="btn g" id="svc-edit-profile">'+(p?'Edit service profile':'Register as a service provider')+'</button><button class="btn alt" id="svc-refresh-account">Refresh bookings</button><button class="btn alt" id="svc-signout">Sign out</button></div>'+(p?'<div class="svc-panel"><h3>'+safe(p.name)+'</h3><p>Status: <b>'+safe(p.status)+'</b> · '+(p.paused?'Hidden by you':'Not paused')+'</p><p class="note">New and edited profiles are reviewed before appearing publicly.</p><button class="btn alt" id="svc-pause">'+(p.paused?'Resume profile':'Pause profile')+'</button></div>':'')+'<h3>My service requests</h3><p class="note">Check here for updates. Confirm the scope, price and time directly before work starts. Requests do not send SMS or WhatsApp automatically.</p><div id="svc-bookings">'+(account.bookings.length?account.bookings.map(bookingCard).join(''):'<p class="mut">No service requests yet. Browse providers to get started.</p>')+'</div>'+message(),'My account');
+   $s('svc-edit-profile').onclick=function(){profileView(p)};$s('svc-refresh-account').onclick=accountView;
+   $s('svc-signout').onclick=async function(){await sb.auth.signOut();user=null;account=null;close()};
+   if(p)$s('svc-pause').onclick=async function(){try{await rpc('pk_services_pause',{p_paused:!p.paused});await load();accountView()}catch(e){status(e.message,true)}};
+  }catch(e){open('<p>'+safe(e.message)+'</p>','Account unavailable')}
+ }
+ function profileView(p){p=p||{};
+  open('<p>Free registration. Your profile appears only after PataKeja approval.</p><form id="svc-profile" class="svc-form">'+input('Business / professional name','svc-name',p.name,'text',80)+'<label for="svc-category">Service</label><select id="svc-category">'+cats.map(function(c){return '<option'+(p.category===c?' selected':'')+'>'+c+'</option>'}).join('')+'</select>'+input('Town','svc-town',p.town,'text',60)+input('Areas served, separated by commas (up to 12; use All areas for the whole town)','svc-areas',(p.areas||[]).join(', '),'text',720)+input('Public business phone / WhatsApp','svc-phone',p.phone,'tel',20)+input('Price or quotation terms, e.g. From KSh 1,000; transport extra','svc-price',p.price_note,'text',160)+input('Working hours / availability','svc-availability',p.availability||'Contact for availability','text',100)+'<label for="svc-description">Describe your services and experience (20–1,000 characters)</label><textarea id="svc-description" minlength="20" maxlength="1000" rows="4" required>'+safe(p.description||'')+'</textarea><label class="svc-check"><input type="checkbox" id="svc-consent" required> I provide these services and agree to publish my business phone, service areas and profile. I will not misrepresent my qualifications.</label><div class="svc-actions"><button class="btn g" type="submit">Submit for approval</button><button class="btn alt" type="button" id="svc-back">Back</button></div>'+message()+'</form><p class="note">Do not upload or include ID numbers, home addresses or payment credentials. Identity checks are arranged privately by the PataKeja team.</p>','Register your service');
+  $s('svc-back').onclick=accountView;
+  $s('svc-profile').onsubmit=async function(e){e.preventDefault();var ph=phone($s('svc-phone').value),areas=$s('svc-areas').value.split(',').map(function(v){return v.trim()}).filter(Boolean);
+   if(!ph){status('Enter a valid Kenyan mobile number, for example 0712345678.',true);return}
+   if(!areas.length||areas.length>12){status('Enter between 1 and 12 service areas.',true);return}
+   var b=e.target.querySelector('[type=submit]');b.disabled=true;
+   try{await rpc('pk_services_save',{p_profile:{name:$s('svc-name').value.trim(),category:$s('svc-category').value,town:$s('svc-town').value.trim(),areas:areas,phone:ph,price_note:$s('svc-price').value.trim(),availability:$s('svc-availability').value.trim(),description:$s('svc-description').value.trim()}});await load();await accountView();status('Profile submitted. It will appear after admin approval.')}catch(err){status(err.message,true)}finally{b.disabled=false}
+  };
+ }
+ function bookingCard(b){
+  var actions='';function button(action,label){return '<button class="btn alt" data-svc-booking="'+safe(b.id)+'" data-action="'+action+'">'+label+'</button>'}
+  if(b.is_provider&&b.status==='requested')actions=button('accept','Accept request')+button('decline','Decline');
+  if(b.is_provider&&b.status==='accepted')actions=button('done','Mark work finished');
+  if(!b.is_provider&&b.status==='provider_done')actions=button('confirm','Confirm work completed');
+  if(!b.is_provider&&['requested','accepted'].indexOf(b.status)>=0)actions+=button('cancel','Cancel request');
+  if(!b.is_provider&&b.status==='completed'&&!b.reviewed)actions='<button class="btn g" data-svc-review="'+safe(b.id)+'">Write a review</button>';
+  return '<article class="svc-panel"><b>'+safe(b.provider_name)+'</b><div class="mut">'+(b.is_provider?'Incoming request':'Your request')+' · '+safe(b.status.replace(/_/g,' '))+'</div><p>'+safe(b.details)+'</p><div>'+safe(b.preferred_date)+' · '+safe(b.area)+'</div><div>Customer: '+safe(b.customer_name)+' · <a href="tel:+'+safe(b.phone)+'">'+safe(b.phone)+'</a></div><div class="svc-actions">'+actions+'</div></article>';
+ }
+ async function providerView(id){
+  var p=providers.find(function(x){return x.id===id});if(!p)return;
+  open('<div class="svc-profile-head"><span class="svc-icon">'+icons[p.category]+'</span><div><b>'+safe(p.category)+' · '+safe(p.town)+'</b><div>'+badges(p)+'</div></div></div><h3>'+safe(p.name)+'</h3><p>'+safe(p.description)+'</p><p><b>Service areas:</b> '+safe(p.areas.join(', '))+'</p><p><b>Price:</b> '+safe(p.price_note)+'<br><b>Availability:</b> '+safe(p.availability)+'</p><p class="note">Town and areas are supplied by the provider; a match is not a distance measurement. Phone checked means our team contacted that number. Identity checked means our team inspected identity evidence. Neither badge guarantees workmanship or safety.</p><div class="svc-actions"><a class="btn alt" href="tel:+'+safe(p.phone)+'">Call provider</a><a class="btn alt" target="_blank" rel="noopener" href="https://wa.me/'+safe(p.phone)+'?text='+encodeURIComponent('Hi, I found '+p.name+' on PataKeja. Please share a quote for your '+p.category.toLowerCase()+' service.')+'">WhatsApp</a><button class="btn g" id="svc-request">Request service</button><button class="btn alt" id="svc-report">Report provider</button></div><p class="note">Agree the full price and scope in writing. PataKeja does not collect service payments.</p><h3>Reviews</h3><div id="svc-reviews">Loading reviews…</div>'+message(),p.name);
+  $s('svc-request').onclick=function(){bookView(p)};$s('svc-report').onclick=function(){reportView(p)};
+  var version=requestVersion;
+  try{var rows=await rpc('pk_services_reviews',{p_id:id});if(version!==requestVersion)return;$s('svc-reviews').innerHTML=rows.length?rows.map(function(r){return '<article class="svc-panel"><b>'+Number(r.rating)+' / 5</b> <span class="mut">Confirmed completed booking · '+safe(new Date(r.created_at).toLocaleDateString())+'</span><p>'+safe(r.body)+'</p></article>'}).join(''):'<p class="mut">No completed-booking reviews yet.</p>'}catch(e){if(version===requestVersion)$s('svc-reviews').textContent='Reviews are temporarily unavailable.'}
+ }
+ async function bookView(p){
+  if(!await session()){authView('Sign in first, then reopen this provider to request a service.');return}
+  open('<p>Request a quote or appointment with <b>'+safe(p.name)+'</b>. The provider must accept before the appointment is agreed.</p><form id="svc-book" class="svc-form">'+input('Your name','svc-customer','','text',80)+input('Your contact phone (shared with this provider)','svc-customer-phone','','tel',20)+input('Town / estate (no exact home address needed yet)','svc-book-area',p.town,'text',160)+input('Preferred date','svc-date','','date',10)+'<label for="svc-job">What work do you need? (10–1,000 characters)</label><textarea id="svc-job" rows="4" minlength="10" maxlength="1000" required></textarea><button class="btn g" type="submit">Send service request</button>'+message()+'</form>','Request service');
+  $s('svc-date').min=new Date().toLocaleDateString('en-CA',{timeZone:'Africa/Nairobi'});
+  $s('svc-book').onsubmit=async function(e){e.preventDefault();var ph=phone($s('svc-customer-phone').value);if(!ph){status('Enter a valid Kenyan mobile number.',true);return}var b=e.target.querySelector('button');b.disabled=true;
+   try{await rpc('pk_services_book',{p_id:p.id,p_request:{customer_name:$s('svc-customer').value.trim(),phone:ph,area:$s('svc-book-area').value.trim(),preferred_date:$s('svc-date').value,details:$s('svc-job').value.trim()}});await accountView();status('Request saved. Check My account for the provider response.')}catch(err){status(err.message,true)}finally{b.disabled=false}};
+ }
+ function reviewView(id){open('<p>Review the work you confirmed as completed. Do not include private phone numbers or addresses.</p><form class="svc-form" id="svc-review-form"><label for="svc-rating">Rating</label><select id="svc-rating">'+[5,4,3,2,1].map(function(n){return '<option value="'+n+'">'+n+' / 5</option>'}).join('')+'</select><label for="svc-review-body">Your review</label><textarea id="svc-review-body" minlength="5" maxlength="600" rows="4" required></textarea><button class="btn g" type="submit">Post review</button>'+message()+'</form>','Review completed service');$s('svc-review-form').onsubmit=async function(e){e.preventDefault();var b=e.target.querySelector('button');b.disabled=true;try{await rpc('pk_services_review',{p_booking:id,p_rating:Number($s('svc-rating').value),p_body:$s('svc-review-body').value.trim()});await load();await accountView();status('Thank you. Your review has been posted.')}catch(err){status(err.message,true)}finally{b.disabled=false}}}
+ async function reportView(p){if(!await session()){authView('Sign in first, then reopen this provider to send a report.');return}open('<p>Report '+safe(p.name)+'. Your report is visible only to PataKeja moderators.</p><form class="svc-form" id="svc-report-form"><label for="svc-reason">What happened?</label><textarea id="svc-reason" minlength="10" maxlength="1000" rows="4" required></textarea><button class="btn g" type="submit">Submit report</button>'+message()+'</form>','Report provider');$s('svc-report-form').onsubmit=async function(e){e.preventDefault();var b=e.target.querySelector('button');b.disabled=true;try{await rpc('pk_services_report',{p_id:p.id,p_reason:$s('svc-reason').value.trim()});status('Report sent for review.');e.target.querySelector('textarea').value=''}catch(err){status(err.message,true)}finally{b.disabled=false}}}
+ function directory(town){$s('svc-filter-town').value=town||'';renderDirectory();$s('services').scrollIntoView({behavior:'smooth'});$s('svc-filter-category').focus()}
+ function mountDetail(x){activeListing=x;if($s('svc-detail-near'))renderNearby()}
+ document.addEventListener('click',async function(e){
+  var b=e.target.closest('[data-svc],[data-svc-account],[data-svc-area],[data-svc-booking],[data-svc-review]');if(!b)return;
+  if(b.hasAttribute('data-svc'))providerView(b.dataset.svc);
+  else if(b.hasAttribute('data-svc-account'))accountView();
+  else if(b.hasAttribute('data-svc-area')){close();directory(b.dataset.svcArea)}
+  else if(b.hasAttribute('data-svc-review'))reviewView(b.dataset.svcReview);
+  else if(b.hasAttribute('data-svc-booking')){if(!confirm(b.dataset.action==='confirm'?'Confirm the work was completed? Only confirm after checking the work.':'Confirm this booking action?'))return;b.disabled=true;try{await rpc('pk_services_booking_action',{p_id:b.dataset.svcBooking,p_action:b.dataset.action});await accountView()}catch(err){status(err.message,true);b.disabled=false}}
+ });
+ function init(){
+  $s('svc-filter-category').innerHTML='<option value="">All services</option>'+cats.map(function(c){return '<option>'+c+'</option>'}).join('');
+  var towns=Object.keys(TOWNS);$s('svc-filter-town').innerHTML='<option value="">All towns</option>'+towns.map(function(t){return '<option>'+safe(t)+'</option>'}).join('');
+  ['svc-filter-category','svc-filter-town','svc-search'].forEach(function(id){$s(id).oninput=renderDirectory});
+  $s('svc-reload').onclick=load;$s('svc-close').onclick=close;
+  $s('svc-modal').onclick=function(e){if(e.target===this)close()};
+  document.addEventListener('keydown',function(e){if($s('svc-modal').hidden)return;if(e.key==='Escape'){close();return}if(e.key==='Tab'){var nodes=Array.from($s('svc-modal').querySelectorAll('button:not(:disabled),input,select,textarea,a[href]')).filter(function(el){return el.offsetParent!==null});var first=nodes[0],last=nodes[nodes.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}});
+  load();
+ }
+ return {init:init,renderNearby:renderNearby,mountDetail:mountDetail,nearby:nearby,phone:phone};
+})();
+PKServices.init();
+
 </script>
 </body>
 </html>
