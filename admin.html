@@ -34,7 +34,7 @@ button,input{font:inherit}input{width:100%;padding:10px;border-radius:10px;borde
 <div id="app" style="display:none">
   <div class="stats" id="stats"></div><h3>Visitor statistics</h3><button class="btn alt" id="refreshAnalytics">Refresh statistics</button><div class="stats" id="analytics" aria-live="polite">Loading statistics…</div>
   <div class="tabs"><button data-t="pending" class="on">Pending</button><button data-t="live">Live</button><button data-t="reports">Reports</button><button data-t="old">Taken / rejected</button></div>
-  <div id="rows"></div><hr><h2>Service providers & safety</h2><button class="btn alt" id="refreshServices">Refresh service applications</button><div id="service-admin" aria-live="polite"></div>
+  <div id="rows"></div><hr><h2>Support team inbox</h2><p class="mut">Replies appear in the requester’s private website conversation. No automatic email or SMS is sent.</p><button class="btn alt" id="pk-refresh-support">Refresh support requests</button><div id="pk-admin-support" aria-live="polite"></div><hr><h2>Service providers & safety</h2><button class="btn alt" id="refreshServices">Refresh service applications</button><div id="service-admin" aria-live="polite"></div>
 </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -56,7 +56,7 @@ $("go").onclick=async function(){
 $("out").onclick=async function(){await sb.auth.signOut();start()};
 document.querySelector(".tabs").onclick=function(e){var b=e.target.closest("button");if(!b)return;tab=b.dataset.t;document.querySelectorAll(".tabs button").forEach(function(x){x.className=x===b?"on":""});draw()};
 async function load(){
-  var a=await sb.from("listings").select("*").order("created_at",{ascending:false}).limit(1000);
+  var a=await sb.rpc("pk_admin_listings");if(a.error){$("rows").textContent="Admin listing access unavailable: "+a.error.message;return}
   var r=await sb.from("reports").select("*").eq("resolved",false).order("created_at",{ascending:false});
   ALL=a.data||[];REP=r.data||[];
   try{var c=await sb.rpc('pk_admin_listing_counts');if(!c.error&&c.data){var m={};c.data.forEach(function(x){m[x.id]=x});ALL.forEach(function(x){if(m[x.id]){x.views=Number(m[x.id].views);x.pk_contacts=Number(m[x.id].contacts)}})}}catch(e){}
@@ -83,7 +83,7 @@ function draw(){
       var btns=x.status=="pending"?'<button class="btn" data-a="approve" data-id="'+x.id+'">Approve</button><button class="btn r" data-a="reject" data-id="'+x.id+'">Reject</button>':
         x.status=="live"?'<button class="btn o" data-a="verify" data-id="'+x.id+'">'+(x.verified?"Remove blue badge":"I visited: add blue badge")+'</button><button class="btn alt" data-a="taken" data-id="'+x.id+'">Mark taken</button><button class="btn alt" data-a="renew" data-id="'+x.id+'">Renew 30 days</button>':
         '<button class="btn alt" data-a="approve" data-id="'+x.id+'">Re-publish</button>';
-      return '<div class="item"><b>'+money(x.rent)+(String(x.category).indexOf('Short stay')==0?' /night':'')+'</b> · '+esc(x.category)+' · '+esc(x.plot_name)+', '+esc(x.estate)+', '+esc(x.town||'Nairobi')+(x.verified?' <span class="vf">✔ Verified</span>':'')+'<div class="mut">'+esc(x.landmark||"")+' · Deposit '+money(x.deposit||x.rent)+exp+' · '+(x.views||0)+' views · '+(x.pk_contacts||0)+' contact reveals</div><div>'+esc(x.description||"")+'</div><div class="mut">'+esc(x.amenities.join(", "))+'</div><div><b>'+esc(x.contact_name||"")+'</b> ('+esc(x.contact_role||"")+') <a href="tel:'+esc(x.contact_phone)+'">'+esc(x.contact_phone)+'</a>'+(x.lat?' · <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+x.lat+','+x.lng+'">map</a>':' · <span class="mut">no GPS</span>')+'</div><div class="ph">'+x.photos.map(function(u){return '<a target="_blank" rel="noopener" href="'+esc(u)+'" style="background-image:url(\''+esc(u)+'\')"></a>'}).join("")+'</div>'+btns+'<button class="btn r" data-a="delete" data-id="'+x.id+'">Delete</button></div>'
+      return '<div class="item"><b>'+money(x.rent)+(String(x.category).indexOf('Short stay')==0?' /night':'')+'</b> · '+esc(x.category)+' · '+esc(x.plot_name)+', '+esc(x.estate)+', '+esc(x.town||'Nairobi')+(x.verified?' <span class="vf">✔ Verified</span>':'')+'<div class="mut">'+esc(x.landmark||"")+' · Deposit '+money(x.deposit||x.rent)+exp+' · '+(x.pk_owner_hidden?' · Owner paused':'')+' · '+(x.views||0)+' views · '+(x.pk_contacts||0)+' contact reveals</div><div>'+esc(x.description||"")+'</div><div class="mut">'+esc(x.amenities.join(", "))+'</div><div><b>'+esc(x.contact_name||"")+'</b> ('+esc(x.contact_role||"")+') <a href="tel:'+esc(x.contact_phone)+'">'+esc(x.contact_phone)+'</a>'+(x.lat?' · <a target="_blank" rel="noopener" href="https://www.google.com/maps?q='+x.lat+','+x.lng+'">map</a>':' · <span class="mut">no GPS</span>')+'</div><div class="ph">'+x.photos.map(function(u){return '<a target="_blank" rel="noopener" href="'+esc(u)+'" style="background-image:url(\''+esc(u)+'\')"></a>'}).join("")+'</div>'+btns+'<button class="btn r" data-a="delete" data-id="'+x.id+'">Delete</button></div>'
     }).join(""):'<p class="mut">Nothing here.</p>'
   }
   $("rows").innerHTML=h
@@ -92,12 +92,9 @@ $("rows").onclick=async function(e){
   var b=e.target.closest("button[data-a]");if(!b)return;
   var a=b.dataset.a,id=b.dataset.id,res,day=864e5,iso=function(d){return new Date(Date.now()+d).toISOString()};
   b.disabled=true;
-  if(a=="approve")res=await sb.from("listings").update({status:"live",approved_at:iso(0),expires_at:iso(30*day)}).eq("id",id);
-  else if(a=="renew")res=await sb.from("listings").update({expires_at:iso(30*day)}).eq("id",id);
-  else if(a=="reject")res=await sb.from("listings").update({status:"rejected"}).eq("id",id);
-  else if(a=="taken"||a=="takedown")res=await sb.from("listings").update({status:"taken"}).eq("id",id);
-  else if(a=="verify"){var x=ALL.filter(function(y){return y.id==id})[0];if(!x.verified&&!confirm("Give the blue badge only after you have visited this property in person. Continue?")){b.disabled=false;return}res=await sb.from("listings").update({verified:!x.verified}).eq("id",id)}
-  else if(a=="delete"){if(!confirm("Delete this listing for good?")){b.disabled=false;return}res=await sb.from("listings").delete().eq("id",id)}
+  if(a=="verify"){var x=ALL.filter(function(y){return y.id==id})[0];if(!x.verified&&!confirm("Confirm you visited this property and completed the displayed checks?")){b.disabled=false;return}}
+  if(a=="delete"&&!confirm("Delete this advert?")){b.disabled=false;return}
+  if(a!="resolve")res=await sb.rpc("pk_admin_listing_action",{p_id:id,p_action:a});
   if(a=="takedown"||a=="resolve")await sb.from("reports").update({resolved:true}).eq("id",b.dataset.rep);
   if(res&&res.error)alert("Failed: "+res.error.message);
   load()
@@ -127,6 +124,18 @@ start();
  document.getElementById('refreshServices').onclick=refresh;
  // Show the service panel after a session is restored or login completes.
  sb.auth.onAuthStateChange(function(event,session){if(session)setTimeout(refresh,0);else box.textContent='Sign in as an authorised admin to manage service providers.'});
+ sb.auth.getSession().then(function(r){if(r.data.session)refresh()});
+})();
+
+</script>
+<script>
+(function(){
+ var root=document.getElementById('pk-admin-support');
+ async function rpc(n,a){var r=await sb.rpc(n,a||{});if(r.error)throw Error(r.error.message);return r.data}
+ async function refresh(){root.textContent='Loading support requests…';try{var rows=await rpc('pk_support_admin_list');root.innerHTML=rows.length?rows.map(function(t){return '<article class="item"><h3>'+esc(t.subject)+'</h3><p>'+esc(t.category)+' · <b>'+esc(t.status)+'</b></p><div class="mut">Reference: '+esc(t.id)+'<br>'+esc(t.name)+' · '+esc(t.email)+(t.listing_ref?'<br>Advert / provider: '+esc(t.listing_ref):'')+'</div>'+t.messages.map(function(m){return '<div class="item"><b>'+(m.author==='support'?'Support':'Requester')+'</b> · '+esc(new Date(m.created_at).toLocaleString())+'<p style="white-space:pre-wrap">'+esc(m.body)+'</p></div>'}).join('')+'<form data-support-reply="'+esc(t.id)+'"><label>Reply (leave blank to change status only)</label><textarea name="body" rows="4" minlength="10" maxlength="3000" style="width:100%;font:inherit"></textarea><label>Status</label><select name="status"><option value="open"'+(t.status==='open'?' selected':'')+'>Open</option><option value="in_progress"'+(t.status==='in_progress'?' selected':'')+'>In progress</option><option value="resolved"'+(t.status==='resolved'?' selected':'')+'>Resolved</option></select><button class="btn" type="submit">Save reply / status</button><p class="mut" role="status"></p></form></article>'}).join(''):'<p class="mut">No support requests yet.</p>'}catch(e){root.textContent='Support unavailable: '+e.message}}
+ root.onsubmit=async function(e){var f=e.target.closest('[data-support-reply]');if(!f)return;e.preventDefault();var b=f.querySelector('button'),m=f.querySelector('[role=status]');b.disabled=true;try{await rpc('pk_support_admin_reply',{p_id:f.dataset.supportReply,p_body:f.elements.body.value.trim(),p_status:f.elements.status.value});m.textContent='Saved. The requester can read your reply on the website.';await refresh()}catch(err){m.textContent=err.message;b.disabled=false}};
+ document.getElementById('pk-refresh-support').onclick=refresh;
+ sb.auth.onAuthStateChange(function(e,s){if(s)setTimeout(refresh,0);else root.textContent='Sign in with an authorised admin account.'});
  sb.auth.getSession().then(function(r){if(r.data.session)refresh()});
 })();
 
