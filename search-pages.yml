@@ -1,0 +1,45 @@
+name: Publish PataKeja with search pages
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '25 * * * *'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: patakeja-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v5
+      - name: Build current public house and town pages
+        run: python3 tools/build_search_pages.py
+      - name: Package public website only
+        run: |
+          python3 - <<'PY'
+          import pathlib, shutil
+          root=pathlib.Path('.')
+          out=root/'_site'
+          out.mkdir(exist_ok=True)
+          for f in root.iterdir():
+              if f.is_file() and (f.suffix in ('.html','.js','.css','.xml','.ico','.png','.jpg','.webp','.svg') or f.name in ('CNAME','robots.txt','.nojekyll')):
+                  shutil.copy2(f,out/f.name)
+          for name in ('houses','towns','assets'):
+              if (root/name).is_dir(): shutil.copytree(root/name,out/name,dirs_exist_ok=True)
+          PY
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v4
