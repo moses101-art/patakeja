@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PataKeja – Pata keja, bila stress</title>
+<title>Houses for Rent in Kenya, Bedsitters & Short Stays | PataKeja</title>
 <meta name="description" content="Find houses, bedsitters, shops and short stays across Kenya. Connect with local plumbers, cleaners and movers on PataKeja.">
+<link rel="canonical" href="https://patakeja.top/">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{--bg:#f7faf7;--card:#fff;--tx:#17301f;--mut:#5d7164;--g:#1f9d55;--o:#d9730d;--bd:#dce6de}
@@ -250,7 +251,7 @@ function render(){
   var f=filt();$("count").textContent=ready?f.length+" vacant house"+(f.length==1?"":"s"):"";
   $("list").innerHTML=f.length?f.map(function(x){
     var img=x.photos&&x.photos[0];
-    return '<article class="listing-group"><button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+badge(x)+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button><div class="svc-save"><button class="btn alt" type="button" data-save-house="'+esc(x.id)+'">'+(pkSaved.indexOf(String(x.id))>=0?'♥ Saved':'♡ Save house')+'</button></div><div data-services-for="'+esc(x.id)+'"></div></article>'
+    return '<article class="listing-group"><button class="card" data-id="'+x.id+'"><div class="ph" '+(img?'style="background-image:url(\''+esc(img)+'\')"':'')+'>'+(img?"":EMO[x.category]||"🏠")+'</div><div class="cb"><div class="price">'+money(x.rent)+'<span class="mut">'+unit(x)+'</span></div><div><b>'+esc(x.category)+'</b> in '+esc(loc(x))+badge(x)+'</div><div class="mut">'+esc(x.plot_name)+(x.landmark?' · '+esc(x.landmark):'')+'</div>'+vw(x)+'<div>'+x.amenities.slice(0,3).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join("")+'</div></div></button><div class="svc-save"><a class="btn alt" href="/houses/'+esc(x.id)+'.html">Property page</a><button class="btn alt" type="button" data-save-house="'+esc(x.id)+'">'+(pkSaved.indexOf(String(x.id))>=0?'♥ Saved':'♡ Save house')+'</button></div><div data-services-for="'+esc(x.id)+'"></div></article>'
   }).join(""):'<div class="empty"><span class="empty-home" aria-hidden="true">⌂</span><h3>Your next home could be one filter away</h3><p>Try a nearby town, another estate or a different budget.</p><button class="btn alt" type="button" data-clear-home-filters>Clear filters</button></div>';
   if(map)drawMap(f);if(typeof PKServices!=='undefined')PKServices.renderNearby()
 }
@@ -603,5 +604,6 @@ var PKHunt=(function(){
 })();
 
 </script>
+<nav aria-label="Browse properties by town" style="padding:24px;text-align:center"><a href="/towns/">Browse houses and rentals by town →</a></nav>
 </body>
 </html>
