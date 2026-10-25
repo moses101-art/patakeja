@@ -1,0 +1,18 @@
+/* Pure accounting helpers shared by the connected dashboard and isolated preview. */
+(function(root){'use strict';
+const cents=n=>Math.round(Number(n||0)*100),money=n=>'KSh '+(n/100).toLocaleString('en-KE',{minimumFractionDigits:2,maximumFractionDigits:2});
+const month=d=>String(d).slice(0,7)+'-01';
+function monthEnd(m){const [y,n]=m.split('-').map(Number);return new Date(Date.UTC(y,n,0)).toISOString().slice(0,10)}
+function active(t,date){return t.start_date<=date&&(!t.end_date||t.end_date>=date)}
+function scope(s,p){if(!p)return s;const unitIds=new Set(s.units.filter(x=>x.property_id===p).map(x=>x.id));const ts=s.tenancies.filter(x=>unitIds.has(x.unit_id)),ids=new Set(ts.map(x=>x.id));return {...s,properties:s.properties.filter(x=>x.id===p),units:s.units.filter(x=>unitIds.has(x.id)),tenancies:ts,charges:s.charges.filter(x=>ids.has(x.tenancy_id)),payments:s.payments.filter(x=>ids.has(x.tenancy_id)),deposits:s.deposits.filter(x=>ids.has(x.tenancy_id)),expenses:s.expenses.filter(x=>x.property_id===p)}}
+function summary(s,m,today){const start=month(m),end=monthEnd(start),cut=end<today?end:today;
+const units=s.units.filter(x=>!x.archived),occupied=new Set(s.tenancies.filter(t=>active(t,end)).map(t=>t.unit_id));
+let expected=0;for(const t of s.tenancies.filter(t=>t.start_date<=end&&(!t.end_date||t.end_date>=start))){const r=s.rates.filter(r=>r.tenancy_id===t.id&&r.effective_month<=start).sort((a,b)=>b.effective_month.localeCompare(a.effective_month))[0];if(r)expected+=cents(r.amount)}
+const charges=s.charges.filter(x=>!x.voided_at),payments=s.payments.filter(x=>!x.voided_at);
+let arrears=0,credit=0;for(const t of s.tenancies){const billed=charges.filter(x=>x.tenancy_id===t.id&&x.due_date<=cut).reduce((a,x)=>a+cents(x.amount),0),received=payments.filter(x=>x.tenancy_id===t.id&&x.paid_on<=cut).reduce((a,x)=>a+cents(x.amount),0);arrears+=Math.max(0,billed-received);credit+=Math.max(0,received-billed)}
+return {properties:s.properties.filter(x=>!x.archived).length,units:units.length,occupied:units.filter(x=>occupied.has(x.id)).length,vacant:units.filter(x=>!occupied.has(x.id)).length,expected,billed:charges.filter(x=>x.month===start).reduce((a,x)=>a+cents(x.amount),0),received:payments.filter(x=>x.paid_on>=start&&x.paid_on<=end).reduce((a,x)=>a+cents(x.amount),0),expenses:s.expenses.filter(x=>x.on_date>=start&&x.on_date<=end).reduce((a,x)=>a+cents(x.amount),0),arrears,credit,cutoff:cut,end}};
+function balance(s,id,cut){return s.charges.filter(x=>x.tenancy_id===id&&!x.voided_at&&x.due_date<=cut).reduce((a,x)=>a+cents(x.amount),0)-s.payments.filter(x=>x.tenancy_id===id&&!x.voided_at&&x.paid_on<=cut).reduce((a,x)=>a+cents(x.amount),0)}
+function statement(s,id,cut){let running=0;const rows=[...s.charges.filter(x=>x.tenancy_id===id&&!x.voided_at&&x.due_date<=cut).map(x=>({date:x.due_date,type:'Rent charge',reference:x.month.slice(0,7),debit:cents(x.amount),credit:0,id:x.id})),...s.payments.filter(x=>x.tenancy_id===id&&!x.voided_at&&x.paid_on<=cut).map(x=>({date:x.paid_on,type:'Payment · '+x.method,reference:x.receipt_no,debit:0,credit:cents(x.amount),id:x.id}))].sort((a,b)=>a.date.localeCompare(b.date)||(b.debit-a.debit)||a.id.localeCompare(b.id));return rows.map(x=>({...x,balance:running+=x.debit-x.credit}))}
+function csv(rows){return rows.map(row=>row.map(x=>{let s=String(x??'');if(/^[\s]*[=+\-@\t\r]/.test(s))s="'"+s;return '"'+s.replace(/"/g,'""')+'"'}).join(',')).join('\r\n')}
+root.PMLedger={cents,money,month,monthEnd,active,scope,summary,balance,statement,csv};if(typeof module!=='undefined')module.exports=root.PMLedger;
+})(typeof window!=='undefined'?window:globalThis);
