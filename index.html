@@ -112,7 +112,7 @@ body{background:var(--bg);color:var(--tx);font-family:Arial,Helvetica,sans-serif
 <body>
 <header><div class="w top">
 <a class="brand" href="index.html" aria-label="PataKeja home"><span class="brand-mark" aria-hidden="true">⌂</span><span><span class="logo">Pata<span>Keja</span></span><span class="tag">Pata keja, bila stress</span></span></a>
-<button type="button" class="pk-menu-toggle" id="pk-menu-toggle" aria-controls="pk-main-menu" aria-expanded="false" aria-label="Open navigation menu">☰</button><nav class="site-nav" id="pk-main-menu" aria-label="Main navigation"><a class="btn alt" href="#home-search">Find a home</a><button class="btn alt" type="button" data-pk-support>Support</button><button class="btn alt" type="button" data-pk-owner>My listings</button><a class="btn alt" href="#services">Local services</a><button class="btn alt" type="button" data-svc-account>My account</button><button class="btn" id="postBtn">+ List a house free</button></nav>
+<button type="button" class="pk-menu-toggle" id="pk-menu-toggle" aria-controls="pk-main-menu" aria-expanded="false" aria-label="Open navigation menu">☰</button><nav class="site-nav" id="pk-main-menu" aria-label="Main navigation"><a class="btn alt" href="landlord.html">Landlord workspace</a><a class="btn alt" href="#home-search">Find a home</a><button class="btn alt" type="button" data-pk-support>Support</button><button class="btn alt" type="button" data-pk-owner>My listings</button><a class="btn alt" href="#services">Local services</a><button class="btn alt" type="button" data-svc-account>My account</button><button class="btn" id="postBtn">+ List a house free</button></nav>
 </div></header>
 
 <main class="w" style="padding:0 14px">
@@ -645,6 +645,26 @@ var PKHunt=(function(){
  document.getElementById('pk-search-submit').addEventListener('click',function(){if(typeof render==='function')render();document.getElementById('pk-home-results').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})});
  document.addEventListener('click',function(e){var town=e.target.closest('[data-pk-town]');if(town){var t=document.getElementById('ft');t.value=town.dataset.pkTown;t.dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('pk-search-submit').click()}
  var service=e.target.closest('[data-pk-service]');if(service){var c=document.getElementById('svc-filter-category');c.value=service.dataset.pkService;c.dispatchEvent(new Event('input',{bubbles:true}));document.getElementById('svc-directory-results').scrollIntoView({block:'start',behavior:'smooth'})}});
+})();
+</script>
+<script>
+/* Owner-initiated handoff of PUBLIC vacancy fields only. No tenant records. */
+(function(){
+ const q=new URL(location.href).searchParams,key=q.get('pm_vacancy');
+ if(q.get('pm_manage')==='1'){const b=document.querySelector('[data-pk-owner]');if(b)b.click();}
+ if(!key||!/^[a-f0-9-]{36}$/i.test(key))return;
+ try{
+ const storageKey='pk_pm_public_'+key,raw=localStorage.getItem(storageKey);localStorage.removeItem(storageKey);if(!raw)return;
+ const d=JSON.parse(raw);if(!d.expires||d.expires<Date.now())return;
+ const button=document.getElementById('postBtn');if(!button)return;button.click();
+ const town=document.getElementById('p_t');if(Array.from(town.options).some(o=>o.value===d.town)){town.value=d.town;town.dispatchEvent(new Event('change'));}else{town.value='';}
+ const estate=document.getElementById('p_e');if(Array.from(estate.options).some(o=>o.value===d.estate))estate.value=d.estate;else{estate.value=typeof OTHER==='string'?OTHER:'Other (type your estate)';estate.dispatchEvent(new Event('change'));document.getElementById('p_eo').value=String(d.estate||'').slice(0,100);}
+ const fields={p_n:d.plot_name,p_c:d.category,p_r:d.rent,p_d:d.deposit};
+ // Existing form IDs are confirmed against the current source in the release tests.
+ for(const [id,v] of Object.entries(fields)){const e=document.getElementById(id);if(e)e.value=v??'';}
+ alert('Public property fields copied. Check the town, estate, rent and public building name; add photos and your public contact, then submit through the normal listing process. No tenant data was copied.');
+ q.delete('pm_vacancy');history.replaceState(null,'',location.pathname+(q.size?'?'+q:'')+location.hash);
+ }catch(e){alert('Could not copy the public draft. Please fill in the normal listing form.');}
 })();
 </script>
 </body>
